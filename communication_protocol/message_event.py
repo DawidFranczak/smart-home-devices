@@ -1,7 +1,6 @@
 class MessageEvent:
     DEVICE_CONNECT = "device_connect"
     DEVICE_DISCONNECT = "device_disconnect"
-    CHECK_UID = "check_uid"
     ACTIVATE = "activate"
     DEACTIVATE = "deactivate"
     TURN_ON = "turn_on"
@@ -16,3 +15,5 @@ class MessageEvent:
     LAMP_TURNED_ON = "lamp_turned_on"
     LAMP_TURNED_OFF = "lamp_turned_off"
     SET_RGB = "set_rgb"
+    CHECK_UID = "check_uid"
+    ADD_TAG = "add_tag"

@@ -29,10 +29,17 @@ class CommunicationModule:
             return self.from_server_queue.popleft()
         return None
 
+    def extract_method_name_from_message(self, message: DeviceMessage) -> str:
+        name = message.message_event.lower()
+        type = message.message_type.lower()
+        return f"_{name}_{type}"
+
     def send_message(self, message: DeviceMessage) -> None:
         self.to_server_queue.append(message)
         self.send_data_event.set()
-        print("Dodano wiaodmość i ustawiono flage")
+
+    def get_mac(self) -> str:
+        return self.mac
 
     async def start(self) -> None:
         while True:
@@ -67,6 +74,7 @@ class CommunicationModule:
                     if data.message_event == MessageEvent.HEALTH_CHECK:
                         self.health_check(data)
                         continue
+                    print(data)
                     self.from_server_queue.append(data)
             except OSError as e:
                 if e.args[0] not in (11, 35):
@@ -80,7 +88,6 @@ class CommunicationModule:
                 await self.send_data_event.wait()
                 self.send_data_event.clear()
                 continue
-            print("PO FLADZE")
             message: DeviceMessage = self.to_server_queue.popleft()
             message.device_id = self.mac
             message = message.to_json()

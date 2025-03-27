@@ -29,10 +29,17 @@ class CommunicationModule:
             return self.from_server_queue.popleft()
         return None
 
+    def extract_method_name_from_message(self, message: DeviceMessage) -> str:
+        name = message.message_event.lower()
+        type = message.message_type.lower()
+        return f"_{name}_{type}"
+
     def send_message(self, message: DeviceMessage) -> None:
         self.to_server_queue.append(message)
         self.send_data_event.set()
-        print("Dodano wiaodmość i ustawiono flage")
+
+    def get_mac(self) -> str:
+        return self.mac
 
     async def start(self) -> None:
         while True:
@@ -44,7 +51,7 @@ class CommunicationModule:
                 addr_info = usocket.getaddrinfo(self.host_name, self.host_port)[0][-1]
                 s.connect(addr_info)
                 print(f"Połączono z {self.host_name}:{self.host_port}")
-                message = self.get_connect_message()
+                message: DeviceMessage = self.get_connect_message()
                 s.send(message.to_json().encode())
                 await asyncio.gather(
                     self._receive_from_router(s),
@@ -80,12 +87,10 @@ class CommunicationModule:
                 await self.send_data_event.wait()
                 self.send_data_event.clear()
                 continue
-            print("PO FLADZE")
             message: DeviceMessage = self.to_server_queue.popleft()
             message.device_id = self.mac
             message = message.to_json()
             socket.send(message.encode())
-            print(message)
 
     async def _connect_to_network(self):
         if not self.wlan.isconnected():

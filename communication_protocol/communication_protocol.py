@@ -1,4 +1,5 @@
 import json
+import machine  # type: ignore
 from .message_event import MessageEvent
 from .message_type import MessageType
 
@@ -10,13 +11,13 @@ class DeviceMessage:
         message_type: MessageType,
         device_id: str,
         payload: dict,
-        message_id: str,
+        message_id=None,
     ) -> None:
         self.message_event: MessageEvent = message_event
         self.message_type: MessageType = message_type
         self.device_id: str = device_id
         self.payload = payload
-        self.message_id = message_id
+        self.message_id = message_id if message_id else machine.unique_id().hex()
 
     def to_json(self) -> str:
         message_dict = {

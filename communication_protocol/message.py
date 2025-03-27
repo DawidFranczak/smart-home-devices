@@ -1,4 +1,4 @@
-import machine
+import machine  # type: ignore
 from communication_protocol.communication_protocol import DeviceMessage
 from communication_protocol.message_event import MessageEvent
 from communication_protocol.message_type import MessageType
@@ -17,7 +17,6 @@ def accept_message(message: DeviceMessage):
 
 def connect_message(mac, fun, wifi_strength):
     return DeviceMessage(
-        message_id=machine.unique_id().hex(),
         message_event=MessageEvent.DEVICE_CONNECT,
         message_type=MessageType.REQUEST,
         device_id=mac,

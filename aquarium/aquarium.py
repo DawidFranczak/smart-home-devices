@@ -1,5 +1,5 @@
 import asyncio
-from machine import Pin, PWM
+from machine import Pin, PWM  # type: ignore
 from communication_protocol.communication_module import CommunicationModule
 from communication_protocol.communication_protocol import DeviceMessage
 from communication_protocol.message import accept_message
@@ -31,41 +31,12 @@ class Aquarium:
             if not message:
                 await asyncio.sleep(1)
                 continue
-            method = getattr(self, message.message_event)
+            method_name = self.communication_protocol.extract_method_name_from_message(
+                message
+            )
+            method = getattr(self, method_name)
             response = method(message)
             self.communication_protocol.send_message(response)
-
-    def set_rgb(self, message: DeviceMessage):
-        rgb = message.payload
-        self.r_value = rgb["r"]
-        self.g_value = rgb["g"]
-        self.b_value = rgb["b"]
-        if self.led_value:
-            self._update_led()
-        return accept_message(message)
-
-    def set_fluo(self, message: DeviceMessage):
-        self._update_fluo(message.payload["value"])
-        return accept_message(message)
-
-    def set_led(self, message: DeviceMessage):
-        led = message.payload["value"]
-        if led:
-            self._update_led()
-        else:
-            self._turn_off_led()
-        return accept_message(message)
-
-    def set_settings(self, message: DeviceMessage):
-        self.r_value = message.payload["color_r"]
-        self.g_value = message.payload["color_g"]
-        self.b_value = message.payload["color_b"]
-        self.led_value = message.payload["led_mode"]
-        self.fluo_value = message.payload["fluo_mode"]
-        if self.led_value:
-            self._update_led()
-        self._update_fluo(self.fluo_value)
-        return accept_message(message)
 
     def _update_led(self):
         self.led_value = True
@@ -81,3 +52,37 @@ class Aquarium:
 
     def _update_fluo(self, value):
         self.pin_fluo.value(value)
+
+    ############################# REQUEST #############################
+
+    def _set_rgb_request(self, message: DeviceMessage):
+        rgb = message.payload
+        self.r_value = rgb["r"]
+        self.g_value = rgb["g"]
+        self.b_value = rgb["b"]
+        if self.led_value:
+            self._update_led()
+        return accept_message(message)
+
+    def _set_fluo_request(self, message: DeviceMessage):
+        self._update_fluo(message.payload["value"])
+        return accept_message(message)
+
+    def _set_led_request(self, message: DeviceMessage):
+        led = message.payload["value"]
+        if led:
+            self._update_led()
+        else:
+            self._turn_off_led()
+        return accept_message(message)
+
+    def _set_settings_response(self, message: DeviceMessage):
+        self.r_value = message.payload["color_r"]
+        self.g_value = message.payload["color_g"]
+        self.b_value = message.payload["color_b"]
+        self.led_value = message.payload["led_mode"]
+        self.fluo_value = message.payload["fluo_mode"]
+        if self.led_value:
+            self._update_led()
+        self._update_fluo(self.fluo_value)
+        return accept_message(message)

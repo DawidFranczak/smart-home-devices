@@ -51,7 +51,7 @@ class CommunicationModule:
                 addr_info = usocket.getaddrinfo(self.host_name, self.host_port)[0][-1]
                 s.connect(addr_info)
                 print(f"Połączono z {self.host_name}:{self.host_port}")
-                message = self.get_connect_message()
+                message: DeviceMessage = self.get_connect_message()
                 s.send(message.to_json().encode())
                 await asyncio.gather(
                     self._receive_from_router(s),
@@ -74,7 +74,6 @@ class CommunicationModule:
                     if data.message_event == MessageEvent.HEALTH_CHECK:
                         self.health_check(data)
                         continue
-                    print(data)
                     self.from_server_queue.append(data)
             except OSError as e:
                 if e.args[0] not in (11, 35):
@@ -92,7 +91,6 @@ class CommunicationModule:
             message.device_id = self.mac
             message = message.to_json()
             socket.send(message.encode())
-            print(message)
 
     async def _connect_to_network(self):
         if not self.wlan.isconnected():

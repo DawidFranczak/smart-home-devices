@@ -9,7 +9,7 @@ class Sensor:
 
     async def start(self):
         self._reset()
-        asyncio.sleep(self.reset_time)
+        await asyncio.sleep(self.reset_time)
 
     def read_uid(self) -> tuple[bool, str]:
         try:

@@ -37,8 +37,10 @@ class RFID:
         method_name: str = self.communication_module.extract_method_name_from_message(
             message
         )
-        print(method_name)
         method = getattr(self, method_name, None)
+        if not method:
+            print(f"Method {method_name} not found")
+            return
         response = method(message)
         self.communication_module.send_message(response)
 
@@ -59,31 +61,28 @@ class RFID:
     ############################# REQUEST #############################
     def _add_tag_request(self, message: DeviceMessage) -> DeviceMessage:
         start_time = time.ticks_ms()
-        print(message)
         while True:
             try:
-                uid = self.sensor.read_uid()
-                if uid:
+                success, uid = self.sensor.read_uid()
+                if success:
                     break
             except Exception as e:
                 pass
-            time.sleep(0.01)
             current_time = time.ticks_ms()
             if (
                 time.ticks_diff(current_time, start_time)
                 >= self.settings["add_tag_timeout"]
             ):
                 break
-        response = add_tag_response(
+            time.sleep(0.01)
+        return add_tag_response(
             self.communication_module.get_mac(),
             uid,
             message.payload["name"],
             message.message_id,
         )
-        self.communication_module.send_message(response)
 
     ############################# RESPONSE #############################
 
     def _set_settings_response(self, message: DeviceMessage) -> DeviceMessage:
-        self.settings = message.payload
-        self.communication_module.send_message(accept_message(message))
+        return accept_message(message)

@@ -76,7 +76,7 @@ class Aquarium:
             self._turn_off_led()
         return accept_message(message)
 
-    def _set_settings_request(self, message: DeviceMessage):
+    def _set_settings_response(self, message: DeviceMessage):
         self.r_value = message.payload["color_r"]
         self.g_value = message.payload["color_g"]
         self.b_value = message.payload["color_b"]

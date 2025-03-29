@@ -86,3 +86,10 @@ class RFID:
 
     def _set_settings_response(self, message: DeviceMessage) -> DeviceMessage:
         return accept_message(message)
+
+    def _check_uid_response(self, message: DeviceMessage) -> DeviceMessage:
+        if message.payload["message"] == "access_granted":
+            self.gate.access(self.settings["open_gate_timeout"])
+        elif message.payload["message"] == "access_denied":
+            self.gate.access_denied()
+        return accept_message(message)

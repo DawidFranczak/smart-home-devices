@@ -3,12 +3,21 @@ from communication_protocol.message_event import MessageEvent
 from communication_protocol.message_type import MessageType
 
 
-def check_uid_request(mac: str, uid: str) -> DeviceMessage:
+def on_read_request(mac: str, uid: str) -> DeviceMessage:
     return DeviceMessage(
-        MessageEvent.CHECK_UID,
+        MessageEvent.ON_READ,
         MessageType.REQUEST,
         mac,
         {"uid": uid},
+    )
+
+
+def on_click_request(mac: str) -> DeviceMessage:
+    return DeviceMessage(
+        MessageEvent.ON_CLICK,
+        MessageType.REQUEST,
+        mac,
+        {},
     )
 
 

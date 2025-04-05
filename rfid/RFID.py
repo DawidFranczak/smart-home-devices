@@ -3,7 +3,7 @@ import Gate
 from communication_protocol.communication_module import CommunicationModule
 from communication_protocol.communication_protocol import DeviceMessage
 from communication_protocol.message import accept_message
-from message import add_tag_response, check_uid_request
+from message import add_tag_response, on_click_request, on_read_request
 from sensor import Sensor
 import uasyncio as asyncio  # type: ignore
 from machine import Pin  # type: ignore
@@ -48,6 +48,9 @@ class RFID:
         if not self.opto_pin.value():
             time.sleep(0.03)
             if not self.opto_pin.value():
+                self.communication_module.send_message(
+                    on_click_request(self.communication_module.get_mac())
+                )
                 self.gate.access(self.settings["open_gate_timeout"])
 
     def _check_sensor(self) -> None:
@@ -55,7 +58,7 @@ class RFID:
         if not success:
             return
         self.communication_module.send_message(
-            check_uid_request(self.communication_module.get_mac(), uid)
+            on_read_request(self.communication_module.get_mac(), uid)
         )
 
     ############################# REQUEST #############################
@@ -82,14 +85,17 @@ class RFID:
             message.message_id,
         )
 
+    def _access_granted_request(self, message: DeviceMessage) -> DeviceMessage:
+        if "open_gate_timeout" in message.payload:
+            self.gate.access(message.payload["open_gate_timeout"])
+        self.gate.access(self.settings["open_gate_timeout"])
+        return accept_message(message)
+
+    def _access_denied_request(self, message: DeviceMessage) -> DeviceMessage:
+        self.gate.access_denied()
+        return accept_message(message)
+
     ############################# RESPONSE #############################
 
     def _set_settings_response(self, message: DeviceMessage) -> DeviceMessage:
-        return accept_message(message)
-
-    def _check_uid_response(self, message: DeviceMessage) -> DeviceMessage:
-        if message.payload["message"] == "access_granted":
-            self.gate.access(self.settings["open_gate_timeout"])
-        elif message.payload["message"] == "access_denied":
-            self.gate.access_denied()
         return accept_message(message)

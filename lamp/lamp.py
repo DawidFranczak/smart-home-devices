@@ -63,11 +63,26 @@ class Lamp:
 
     ############################# REQUEST #####################################
 
-    def _set_settings_request(self, message: DeviceMessage):
+    def _set_settings_request(self, message: DeviceMessage) -> DeviceMessage:
         return self._set_settings_response(message)
 
-    def _turn_on_request(self, message: DeviceMessage):
-        asyncio.create_task(self.blink_lamp(message.payload["reverse"]))
+    def _off_request(self, message: DeviceMessage) -> DeviceMessage:
+        if "reverse" in message.payload:
+            self._turn_off(message.payload["reverse"])
+        self._turn_off()
+        return accept_message(message)
+
+    def _on_request(self, message: DeviceMessage) -> DeviceMessage:
+        if "reverse" in message.payload:
+            self._turn_on(message.payload["reverse"])
+        self._turn_on()
+        return accept_message(message)
+
+    def _blink_request(self, message: DeviceMessage) -> DeviceMessage:
+        if "reverse" in message.payload:
+            asyncio.create_task(self.blink_lamp(message.payload["reverse"]))
+        else:
+            asyncio.create_task(self.blink_lamp())
         return accept_message(message)
 
     ############################# RESPONSE ####################################

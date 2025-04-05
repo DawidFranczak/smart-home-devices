@@ -25,12 +25,13 @@ class RFID:
 
     async def start(self):
         while True:
-            self._check_button()
-            self._check_sensor()
-            self._check_message()
+            await self._check_button()
+            if not self.gate.in_process():
+                await self._check_sensor()
+            await self._check_message()
             await asyncio.sleep(0.1)
 
-    def _check_message(self):
+    async def _check_message(self):
         message: DeviceMessage | None = self.communication_module.get_message()
         if not message:
             return
@@ -41,19 +42,19 @@ class RFID:
         if not method:
             print(f"Method {method_name} not found")
             return
-        response = method(message)
+        response = await method(message)
         self.communication_module.send_message(response)
 
-    def _check_button(self):
+    async def _check_button(self):
         if not self.opto_pin.value():
-            time.sleep(0.03)
+            await asyncio.sleep(0.03)
             if not self.opto_pin.value():
                 self.communication_module.send_message(
                     on_click_request(self.communication_module.get_mac())
                 )
-                self.gate.access(self.settings["open_gate_timeout"])
+                await self.gate.access(self.settings["open_gate_timeout"])
 
-    def _check_sensor(self) -> None:
+    async def _check_sensor(self) -> None:
         success, uid = self.sensor.read_uid()
         if not success:
             return
@@ -62,7 +63,7 @@ class RFID:
         )
 
     ############################# REQUEST #############################
-    def _add_tag_request(self, message: DeviceMessage) -> DeviceMessage:
+    async def _add_tag_request(self, message: DeviceMessage) -> DeviceMessage:
         start_time = time.ticks_ms()
         while True:
             try:
@@ -85,17 +86,20 @@ class RFID:
             message.message_id,
         )
 
-    def _access_granted_request(self, message: DeviceMessage) -> DeviceMessage:
-        if "open_gate_timeout" in message.payload:
-            self.gate.access(message.payload["open_gate_timeout"])
-        self.gate.access(self.settings["open_gate_timeout"])
+    async def _access_granted_request(self, message: DeviceMessage) -> DeviceMessage:
+        time = (
+            message.payload["open_gate_timeout"]
+            if "open_gate_timeout" in message.payload
+            else self.settings["open_gate_timeout"]
+        )
+        asyncio.create_task(self.gate.access(time))
         return accept_message(message)
 
-    def _access_denied_request(self, message: DeviceMessage) -> DeviceMessage:
-        self.gate.access_denied()
+    async def _access_denied_request(self, message: DeviceMessage) -> DeviceMessage:
+        asyncio.create_task(self.gate.access_denied())
         return accept_message(message)
 
     ############################# RESPONSE #############################
 
-    def _set_settings_response(self, message: DeviceMessage) -> DeviceMessage:
+    async def _set_settings_response(self, message: DeviceMessage) -> DeviceMessage:
         return accept_message(message)

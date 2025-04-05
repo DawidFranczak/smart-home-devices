@@ -1,5 +1,6 @@
 from machine import Pin  # type: ignore
 import time
+import asyncio
 
 
 class Gate:
@@ -7,8 +8,13 @@ class Gate:
         self.gate = Pin(gate, Pin.OUT)  # D2
         self.buzzer = Pin(buzzer, Pin.OUT)  # D1
         self.start_time: int = 0
+        self.is_in_process: bool = False
 
-    def access(self, open_gate_timeout):
+    def in_process(self) -> bool:
+        return self.is_in_process
+
+    async def access(self, open_gate_timeout):
+        self.is_in_process = True
         self.gate.value(1)
         self.buzzer.value(1)
         start_time: int = time.ticks_ms()
@@ -16,14 +22,17 @@ class Gate:
 
         while time.ticks_diff(current_time, start_time) <= open_gate_timeout:
             current_time: int = time.ticks_ms()
-            time.sleep(0.01)
+            await asyncio.sleep(0.01)
 
         self.buzzer.value(0)
         self.gate.value(0)
+        self.is_in_process = False
 
-    def access_denied(self):
+    async def access_denied(self):
+        self.is_in_process = True
         for _ in range(4):
             self.buzzer.value(1)
-            time.sleep(0.2)
+            await asyncio.sleep(0.2)
             self.buzzer.value(0)
-            time.sleep(0.2)
+            await asyncio.sleep(0.2)
+        self.is_in_process = False

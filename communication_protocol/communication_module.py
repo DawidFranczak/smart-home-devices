@@ -23,6 +23,7 @@ class CommunicationModule:
         self.host_port = host_port
         self.send_data_event = asyncio.Event()
         self.mac = ":".join(["{:02x}".format(b) for b in self.wlan.config("mac")])
+        self.socket = None
 
     def get_message(self) -> DeviceMessage | None:
         if self.from_server_queue:
@@ -42,46 +43,63 @@ class CommunicationModule:
         return self.mac
 
     async def start(self) -> None:
+        receive_from_router_task = None
+        send_to_router_task = None
+        send_ping_task = None
+        send_health_check_task = None
         while True:
             await self._connect_to_network()
-
-            s = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-
             try:
                 addr_info = usocket.getaddrinfo(self.host_name, self.host_port)[0][-1]
-                s.connect(addr_info)
-                print(f"Połączono z {self.host_name}:{self.host_port}")
+                if self.socket:
+                    self.socket.close()
+                if receive_from_router_task:
+                    receive_from_router_task.cancel()
+                if send_to_router_task:
+                    send_to_router_task.cancel()
+                if send_ping_task:
+                    send_ping_task.cancel()
+                if send_health_check_task:
+                    send_health_check_task.cancel()
+
+                self.socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+                self.socket.connect(addr_info)
                 message: DeviceMessage = self.get_connect_message()
-                s.send(message.to_json().encode())
+                self.socket.send(message.to_json().encode())
+                receive_from_router_task = asyncio.create_task(
+                    self._receive_from_router()
+                )
+                send_to_router_task = asyncio.create_task(self._send_to_router())
+                send_ping_task = asyncio.create_task(self._send_ping())
+                send_health_check_task = asyncio.create_task(self._send_health_check())
+
                 await asyncio.gather(
-                    self._receive_from_router(s),
-                    self._send_to_router(s),
+                    receive_from_router_task,
+                    send_to_router_task,
+                    send_ping_task,
+                    send_health_check_task,
                 )
             except Exception as e:
                 print(e)
-            finally:
-                s.close()
-                continue
+                print("Resetuje połączenie")
 
-    async def _receive_from_router(self, socket) -> None:
-        socket.setblocking(False)
+    async def _receive_from_router(self) -> None:
+        self.socket.setblocking(False)
         while True:
             try:
-                data = socket.recv(1024)
-                if data:
-                    data = data.decode("utf-8")
-                    data: DeviceMessage = DeviceMessage.from_json(data)
-                    if data.message_event == MessageEvent.HEALTH_CHECK:
-                        self.health_check(data)
-                        continue
-                    self.from_server_queue.append(data)
+                data = self.socket.recv(1024)
+                if data == b"P":
+                    continue
+                data = data.decode("utf-8")
+                data: DeviceMessage = DeviceMessage.from_json(data)
+                self.from_server_queue.append(data)
             except OSError as e:
                 if e.args[0] not in (11, 35):
                     print(e)
                     raise
             await asyncio.sleep(0.1)
 
-    async def _send_to_router(self, socket) -> None:
+    async def _send_to_router(self) -> None:
         while True:
             if not self.to_server_queue:
                 await self.send_data_event.wait()
@@ -90,7 +108,7 @@ class CommunicationModule:
             message: DeviceMessage = self.to_server_queue.popleft()
             message.device_id = self.mac
             message = message.to_json()
-            socket.send(message.encode())
+            self.socket.sendall(message.encode())
 
     async def _connect_to_network(self):
         if not self.wlan.isconnected():
@@ -106,11 +124,18 @@ class CommunicationModule:
                 await asyncio.sleep(1)
             print("Adres IP:", self.wlan.ifconfig()[0])
 
+    async def _send_health_check(self) -> None:
+        while True:
+            self.to_server_queue.append(
+                health_check_message(self.mac, self.wlan.status("rssi"))
+            )
+            self.send_data_event.set()
+            await asyncio.sleep(120)
+
+    async def _send_ping(self) -> None:
+        while True:
+            self.socket.sendall(b"P")
+            await asyncio.sleep(0.5)
+
     def get_connect_message(self) -> DeviceMessage:
         return connect_message(self.mac, self.fun, self.wlan.status("rssi"))
-
-    def health_check(self, message: DeviceMessage) -> None:
-        self.to_server_queue.append(
-            health_check_message(message.message_id, self.mac, self.wlan.status("rssi"))
-        )
-        self.send_data_event.set()

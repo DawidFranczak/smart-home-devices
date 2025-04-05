@@ -18,6 +18,7 @@ class Lamp:
         self.pca9685 = PCA9685(i2c)
         self.pca9685.freq(50)
         self.communication_module = communication_module
+        self.is_pending = False
 
     async def start(self):
         for i in self.lamps:
@@ -31,15 +32,17 @@ class Lamp:
                 message
             )
             method = getattr(self, method_name)
-            response = method(message)
+            response = await method(message)
             self.communication_module.send_message(response)
 
     async def blink_lamp(self, reverse=False):
-        self._turn_on(reverse)
+        self.is_pending = True
+        await self._turn_on(reverse)
         await asyncio.sleep(self.lighting_time)
-        self._turn_off(reverse)
+        await self._turn_off(reverse)
+        self.is_pending = False
 
-    def _turn_on(self, reverse=False):
+    async def _turn_on(self, reverse=False):
         if self.lamp_on:
             return
         self.lamp_on = True
@@ -50,7 +53,7 @@ class Lamp:
                 self.pca9685.duty(i, temp_brightness)
             self.pca9685.duty(i, self.brightness)
 
-    def _turn_off(self, reverse=False):
+    async def _turn_off(self, reverse=False):
         if not self.lamp_on:
             return
         self.lamp_on = False
@@ -63,31 +66,33 @@ class Lamp:
 
     ############################# REQUEST #####################################
 
-    def _set_settings_request(self, message: DeviceMessage) -> DeviceMessage:
-        return self._set_settings_response(message)
+    async def _set_settings_request(self, message: DeviceMessage) -> DeviceMessage:
+        return await self._set_settings_response(message)
 
-    def _off_request(self, message: DeviceMessage) -> DeviceMessage:
-        if "reverse" in message.payload:
-            self._turn_off(message.payload["reverse"])
-        self._turn_off()
+    async def _off_request(self, message: DeviceMessage) -> DeviceMessage:
+        if self.is_pending:
+            return accept_message(message)
+        reverse = message.payload.get("reverse", False)
+        asyncio.create_task(self._turn_off(reverse))
         return accept_message(message)
 
-    def _on_request(self, message: DeviceMessage) -> DeviceMessage:
-        if "reverse" in message.payload:
-            self._turn_on(message.payload["reverse"])
-        self._turn_on()
+    async def _on_request(self, message: DeviceMessage) -> DeviceMessage:
+        if self.is_pending:
+            return accept_message(message)
+        reverse = message.payload.get("reverse", False)
+        asyncio.create_task(self._turn_on(reverse))
         return accept_message(message)
 
-    def _blink_request(self, message: DeviceMessage) -> DeviceMessage:
-        if "reverse" in message.payload:
-            asyncio.create_task(self.blink_lamp(message.payload["reverse"]))
-        else:
-            asyncio.create_task(self.blink_lamp())
+    async def _blink_request(self, message: DeviceMessage) -> DeviceMessage:
+        if self.is_pending:
+            return accept_message(message)
+        reverse = message.payload.get("reverse", False)
+        asyncio.create_task(self.blink_lamp(reverse))
         return accept_message(message)
 
     ############################# RESPONSE ####################################
 
-    def _set_settings_response(self, message: DeviceMessage):
+    async def _set_settings_response(self, message: DeviceMessage):
         self.brightness = int(message.payload["brightness"] * 40.95)
         self.step = message.payload["step"]
         self.lighting_time = message.payload["lighting_time"]

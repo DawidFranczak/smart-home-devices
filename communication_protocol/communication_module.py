@@ -135,7 +135,7 @@ class CommunicationModule:
     async def _send_ping(self) -> None:
         while True:
             self.socket.sendall(b"P")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
 
     def get_connect_message(self) -> DeviceMessage:
         return connect_message(self.mac, self.fun, self.wlan.status("rssi"))

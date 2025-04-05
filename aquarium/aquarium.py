@@ -39,13 +39,11 @@ class Aquarium:
             self.communication_protocol.send_message(response)
 
     def _update_led(self):
-        self.led_value = True
         self.pin_r.duty(self.r_value)
         self.pin_g.duty(self.g_value)
         self.pin_b.duty(self.b_value)
 
     def _turn_off_led(self):
-        self.led_value = False
         self.pin_r.duty(0)
         self.pin_g.duty(0)
         self.pin_b.duty(0)
@@ -55,34 +53,16 @@ class Aquarium:
 
     ############################# REQUEST #############################
 
-    def _set_rgb_request(self, message: DeviceMessage):
-        rgb = message.payload
-        self.r_value = rgb["r"]
-        self.g_value = rgb["g"]
-        self.b_value = rgb["b"]
-        if self.led_value:
-            self._update_led()
-        return accept_message(message)
+    def _set_settings_request(self, message: DeviceMessage) -> DeviceMessage:
+        return self._set_settings_response(message)
 
-    def _set_fluo_request(self, message: DeviceMessage):
-        self._update_fluo(message.payload["value"])
-        return accept_message(message)
-
-    def _set_led_request(self, message: DeviceMessage):
-        led = message.payload["value"]
-        if led:
-            self._update_led()
-        else:
-            self._turn_off_led()
-        return accept_message(message)
-
-    def _set_settings_response(self, message: DeviceMessage):
-        self.r_value = message.payload["color_r"]
-        self.g_value = message.payload["color_g"]
-        self.b_value = message.payload["color_b"]
-        self.led_value = message.payload["led_mode"]
-        self.fluo_value = message.payload["fluo_mode"]
-        if self.led_value:
-            self._update_led()
+    ############################# RESPONSE #############################
+    def _set_settings_response(self, message: DeviceMessage) -> DeviceMessage:
+        self.r_value = message.payload.get("color_r", self.r_value)
+        self.g_value = message.payload.get("color_g", self.g_value)
+        self.b_value = message.payload.get("color_b", self.b_value)
+        self.led_value = message.payload.get("led_mode", self.led_value)
+        self.fluo_value = message.payload.get("fluo_mode", self.fluo_value)
+        self._update_led() if self.led_value else self._turn_off_led()
         self._update_fluo(self.fluo_value)
         return accept_message(message)

@@ -5,5 +5,5 @@
   "server_port": 8080,
   "rfid_reset": 60000,
   "add_tag_timeout": 10000,
-  "open_gate_timeout": 3000
+  "open_gate_timeout": 10000
 }

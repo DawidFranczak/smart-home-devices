@@ -27,11 +27,10 @@ def connect_message(mac, fun, wifi_strength):
     )
 
 
-def health_check_message(message_id, mac, wifi_strength):
+def health_check_message(mac, wifi_strength):
     return DeviceMessage(
-        message_id=message_id,
         message_event=MessageEvent.HEALTH_CHECK,
-        message_type=MessageType.RESPONSE,
+        message_type=MessageType.REQUEST,
         device_id=mac,
         payload={
             "wifi_strength": wifi_strength,

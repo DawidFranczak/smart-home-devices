@@ -1,4 +1,4 @@
-from machine import Pin, SoftSPI
+from machine import Pin, SoftSPI  # type: ignore
 from os import uname
 
 
@@ -25,13 +25,21 @@ class MFRC522:
 
         board = uname()[0]
 
-        if board == 'WiPy' or board == 'LoPy' or board == 'FiPy':
+        if board == "WiPy" or board == "LoPy" or board == "FiPy":
             self.spi = SoftSPI(0)
-            self.spi.init(SoftSPI.MASTER, baudrate=1000000, pins=(self.sck, self.mosi, self.miso))
-        elif board == 'esp8266':
-            self.spi = SoftSPI(baudrate=100000, polarity=0, phase=0, sck=self.sck, mosi=self.mosi, miso=self.miso)
+            self.spi.init(
+                SoftSPI.MASTER, baudrate=1000000, pins=(self.sck, self.mosi, self.miso)
+            )
+        elif board == "esp8266":
+            self.spi = SoftSPI(
+                baudrate=100000,
+                polarity=0,
+                phase=0,
+                sck=self.sck,
+                mosi=self.mosi,
+                miso=self.miso,
+            )
             self.spi.init()
-
 
         self.rst.value(1)
         self.init()
@@ -39,14 +47,14 @@ class MFRC522:
     def _wreg(self, reg, val):
 
         self.cs.value(0)
-        self.spi.write(b'%c' % int(0xff & ((reg << 1) & 0x7e)))
-        self.spi.write(b'%c' % int(0xff & val))
+        self.spi.write(b"%c" % int(0xFF & ((reg << 1) & 0x7E)))
+        self.spi.write(b"%c" % int(0xFF & val))
         self.cs.value(1)
 
     def _rreg(self, reg):
 
         self.cs.value(0)
-        self.spi.write(b'%c' % int(0xff & (((reg << 1) & 0x7e) | 0x80)))
+        self.spi.write(b"%c" % int(0xFF & (((reg << 1) & 0x7E) | 0x80)))
         val = self.spi.read(1)
         self.cs.value(1)
 
@@ -221,7 +229,11 @@ class MFRC522:
                 buf.append(data[i])
             buf += self._crc(buf)
             (stat, recv, bits) = self._tocard(0x0C, buf)
-            if not (stat == self.OK) or not (bits == 4) or not ((recv[0] & 0x0F) == 0x0A):
+            if (
+                not (stat == self.OK)
+                or not (bits == 4)
+                or not ((recv[0] & 0x0F) == 0x0A)
+            ):
                 stat = self.ERR
 
         return stat

@@ -25,6 +25,9 @@ class CommunicationModule:
         self.mac = ":".join(["{:02x}".format(b) for b in self.wlan.config("mac")])
         self.socket = None
 
+    def is_connected(self) -> bool:
+        return self.wlan.isconnected()
+
     def get_message(self) -> DeviceMessage | None:
         if self.from_server_queue:
             return self.from_server_queue.popleft()

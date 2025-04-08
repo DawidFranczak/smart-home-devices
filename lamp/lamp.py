@@ -14,11 +14,11 @@ class Lamp:
         self.brightness: int = 4095
         self.step: int = 10
         self.lighting_time: int = 10
-        self.lamp_on = False
         self.pca9685 = PCA9685(i2c)
         self.pca9685.freq(50)
         self.communication_module = communication_module
         self.is_pending = False
+        self.lamp_on = False
 
     async def start(self):
         for i in self.lamps:
@@ -88,6 +88,16 @@ class Lamp:
             return accept_message(message)
         reverse = message.payload.get("reverse", False)
         asyncio.create_task(self.blink_lamp(reverse))
+        return accept_message(message)
+
+    async def _toggle_request(self, message: DeviceMessage) -> DeviceMessage:
+        if self.is_pending:
+            return accept_message(message)
+        reverse = message.payload.get("reverse", False)
+        if self.lamp_on:
+            asyncio.create_task(self._turn_off(reverse))
+        else:
+            asyncio.create_task(self._turn_on(reverse))
         return accept_message(message)
 
     ############################# RESPONSE ####################################

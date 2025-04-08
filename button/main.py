@@ -1,12 +1,9 @@
-import os
 import json
 import asyncio
 from communication_protocol.communication_module import CommunicationModule
 from button import Button
 
-settings_path = os.path.join(
-    os.path.dirname(__file__), "communication_protocol", "settings.json"
-)
+settings_path = "communication_protocol/settings.json"
 
 with open(settings_path, "r") as f:
     settings = json.load(f)

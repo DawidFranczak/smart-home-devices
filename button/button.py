@@ -1,5 +1,5 @@
 import asyncio
-from button.message import on_click_request, on_hold_request
+from message import on_click_request, on_hold_request
 from communication_protocol.communication_protocol import DeviceMessage
 from communication_protocol.message import accept_message
 from machine import Pin  # type: ignore
@@ -15,19 +15,20 @@ class Button:
         while True:
             await self._check_message()
             await self.check_button()
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
 
     async def check_button(self):
-        while True:
+        if not self.button.value():
+            await asyncio.sleep(0.03)
+            if self.button.value():
+                return
+            await asyncio.sleep(1)
+            message = on_click_request(self.communication_module.mac)
             if not self.button.value():
-                await asyncio.sleep(0.03)
-                if self.button.value():
-                    continue
-                await asyncio.sleep(1)
-                message = on_click_request(self.communication_module.mac)
-                if not self.button.value():
-                    message = on_hold_request(self.communication_module.mac)
-                await self.communication_module.send_message(message)
+                message = on_hold_request(self.communication_module.mac)
+            self.communication_module.send_message(message)
+            while not self.button.value():
+                await asyncio.sleep(0.1)
 
     async def _check_message(self):
         message: DeviceMessage | None = self.communication_module.get_message()
@@ -43,5 +44,4 @@ class Button:
         self.communication_module.send_message(response)
 
     async def _set_settings_response(self, message: DeviceMessage) -> DeviceMessage:
-        print(message)
         return accept_message(message)

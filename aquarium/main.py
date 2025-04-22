@@ -1,11 +1,20 @@
 import asyncio
 from communication_protocol.communication_module import CommunicationModule
 from aquarium import Aquarium
+import ujson  # type: ignore
+
+
+with open("communication_protocol/settings.json", "r") as f:
+    connection_settings = ujson.load(f)
 
 
 async def main():
     communication_module = CommunicationModule(
-        "192.168.1.143", 8080, "Tenda", "1RKKHAPIEJ", "aquarium"
+        connection_settings["server_ip"],
+        connection_settings["server_port"],
+        connection_settings["ssid"],
+        connection_settings["password"],
+        "aquarium",
     )
     aquarium = Aquarium(14, 12, 13, 0, communication_module)
     await asyncio.gather(communication_module.start(), aquarium.start())

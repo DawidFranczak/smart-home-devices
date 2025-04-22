@@ -29,7 +29,7 @@ class Aquarium:
         while True:
             message: DeviceMessage | None = self.communication_protocol.get_message()
             if not message:
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.1)
                 continue
             method_name = self.communication_protocol.extract_method_name_from_message(
                 message
@@ -37,6 +37,7 @@ class Aquarium:
             method = getattr(self, method_name)
             response = method(message)
             self.communication_protocol.send_message(response)
+            await asyncio.sleep(0.1)
 
     def _update_led(self):
         self.pin_r.duty(self.r_value)

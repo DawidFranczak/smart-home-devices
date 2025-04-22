@@ -15,13 +15,16 @@ from sensor import Sensor
 with open("settings.json", "r") as f:
     settings = ujson.load(f)
 
+with open("communication_protocol/settings.json", "r") as f:
+    connection_settings = ujson.load(f)
+
 
 async def main():
     communication_module = CommunicationModule(
-        settings["server_ip"],
-        settings["server_port"],
-        settings["ssid"],
-        settings["password"],
+        connection_settings["server_ip"],
+        connection_settings["server_port"],
+        connection_settings["ssid"],
+        connection_settings["password"],
         "rfid",
     )
     sensor = Sensor(MFRC522(14, 13, 12, 16, 15), settings["rfid_reset"])

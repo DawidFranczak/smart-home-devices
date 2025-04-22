@@ -78,7 +78,7 @@ class RFID:
                 >= self.settings["add_tag_timeout"]
             ):
                 break
-            time.sleep(0.01)
+            await asyncio.sleep(0.01)
         return add_tag_response(
             self.communication_module.get_mac(),
             uid,

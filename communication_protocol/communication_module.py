@@ -16,8 +16,8 @@ class CommunicationModule:
         self.ssid = ssid
         self.password = password
         self.fun = fun
-        self.to_server_queue = deque([], 1000)
-        self.from_server_queue = deque([], 1000)
+        self.to_server_queue = deque([], 100)
+        self.from_server_queue = deque([], 100)
         self.wlan = network.WLAN(network.STA_IF)
         self.host_name = host_name
         self.host_port = host_port
@@ -111,7 +111,10 @@ class CommunicationModule:
             message: DeviceMessage = self.to_server_queue.popleft()
             message.device_id = self.mac
             message = message.to_json()
-            self.socket.sendall(message.encode())
+            try:
+                self.socket.sendall(message.encode())
+            except Exception as e:
+                print("Błąd podczas wysyłania:", e)
 
     async def _connect_to_network(self):
         if not self.wlan.isconnected():
@@ -137,8 +140,12 @@ class CommunicationModule:
 
     async def _send_ping(self) -> None:
         while True:
-            self.socket.sendall(b"P")
-            await asyncio.sleep(1)
+            try:
+                self.socket.sendall(b"P")
+            except Exception as e:
+                print("❌ Błąd PING:", e)
+            finally:
+                await asyncio.sleep(5)
 
     def get_connect_message(self) -> DeviceMessage:
         return connect_message(self.mac, self.fun, self.wlan.status("rssi"))

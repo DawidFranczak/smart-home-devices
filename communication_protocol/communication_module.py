@@ -48,7 +48,6 @@ class CommunicationModule:
     async def start(self) -> None:
         receive_from_router_task = None
         send_to_router_task = None
-        send_ping_task = None
         send_health_check_task = None
         while True:
             await self._connect_to_network()
@@ -60,8 +59,6 @@ class CommunicationModule:
                     receive_from_router_task.cancel()
                 if send_to_router_task:
                     send_to_router_task.cancel()
-                if send_ping_task:
-                    send_ping_task.cancel()
                 if send_health_check_task:
                     send_health_check_task.cancel()
 
@@ -73,13 +70,11 @@ class CommunicationModule:
                     self._receive_from_router()
                 )
                 send_to_router_task = asyncio.create_task(self._send_to_router())
-                send_ping_task = asyncio.create_task(self._send_ping())
                 send_health_check_task = asyncio.create_task(self._send_health_check())
 
                 await asyncio.gather(
                     receive_from_router_task,
                     send_to_router_task,
-                    send_ping_task,
                     send_health_check_task,
                 )
             except Exception as e:
@@ -91,15 +86,22 @@ class CommunicationModule:
         while True:
             try:
                 data = self.socket.recv(1024)
-                if data == b"P":
-                    continue
+                if not data:
+                    print("Router zamknął połączenie")
+                    raise ConnectionError("Rozłączono z routerem")
                 data = data.decode("utf-8")
                 data: DeviceMessage = DeviceMessage.from_json(data)
+                print(data)
                 self.from_server_queue.append(data)
             except OSError as e:
-                if e.args[0] not in (11, 35):
-                    print(e)
+                if e.args[0] not in (11, 35):  # EAGAIN, EWOULDBLOCK
+                    print(f"Błąd sieciowy: {e}")
                     raise
+            except ConnectionError:
+                raise
+            except Exception as e:
+                print(f"Błąd w odbiorze: {e}")
+                raise
             await asyncio.sleep(0.1)
 
     async def _send_to_router(self) -> None:
@@ -125,8 +127,11 @@ class CommunicationModule:
             while not self.wlan.isconnected():
                 print(".")
                 count += 1
-                if count == 5:
-                    machine.reset()
+                if count == 10:
+                    print("Nie udało się połączyć, ponawiam...")
+                    self.wlan.disconnect()
+                    count = 0
+                    self.wlan.connect(self.ssid, self.password)
                 await asyncio.sleep(1)
             print("Adres IP:", self.wlan.ifconfig()[0])
 
@@ -136,16 +141,8 @@ class CommunicationModule:
                 health_check_message(self.mac, self.wlan.status("rssi"))
             )
             self.send_data_event.set()
-            await asyncio.sleep(120)
-
-    async def _send_ping(self) -> None:
-        while True:
-            try:
-                self.socket.sendall(b"P")
-            except Exception as e:
-                print("❌ Błąd PING:", e)
-            finally:
-                await asyncio.sleep(5)
+            print("Wysłano health check")
+            await asyncio.sleep(60)
 
     def get_connect_message(self) -> DeviceMessage:
         return connect_message(self.mac, self.fun, self.wlan.status("rssi"))

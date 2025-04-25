@@ -50,36 +50,43 @@ class CommunicationModule:
         send_to_router_task = None
         send_health_check_task = None
         while True:
-            await self._connect_to_network()
-            try:
-                addr_info = usocket.getaddrinfo(self.host_name, self.host_port)[0][-1]
-                if self.socket:
-                    self.socket.close()
-                if receive_from_router_task:
-                    receive_from_router_task.cancel()
-                if send_to_router_task:
-                    send_to_router_task.cancel()
-                if send_health_check_task:
-                    send_health_check_task.cancel()
+            if not self.is_connected():
+                print("Nie można połączyć się z routerem")
+                self.connect()
+                await asyncio.sleep(1)
 
-                self.socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-                self.socket.connect(addr_info)
-                message: DeviceMessage = self.get_connect_message()
-                self.socket.send(message.to_json().encode())
-                receive_from_router_task = asyncio.create_task(
-                    self._receive_from_router()
-                )
-                send_to_router_task = asyncio.create_task(self._send_to_router())
-                send_health_check_task = asyncio.create_task(self._send_health_check())
+            else:
+                print("Połączono z routerem")
+                await asyncio.sleep(1)
+            # try:
+            #     addr_info = usocket.getaddrinfo(self.host_name, self.host_port)[0][-1]
+            #     if self.socket:
+            #         self.socket.close()
+            #     if receive_from_router_task:
+            #         receive_from_router_task.cancel()
+            #     if send_to_router_task:
+            #         send_to_router_task.cancel()
+            #     if send_health_check_task:
+            #         send_health_check_task.cancel()
 
-                await asyncio.gather(
-                    receive_from_router_task,
-                    send_to_router_task,
-                    send_health_check_task,
-                )
-            except Exception as e:
-                print(e)
-                print("Resetuje połączenie")
+            #     self.socket = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+            #     self.socket.connect(addr_info)
+            #     message: DeviceMessage = self.get_connect_message()
+            #     self.socket.send(message.to_json().encode())
+            #     receive_from_router_task = asyncio.create_task(
+            #         self._receive_from_router()
+            #     )
+            #     send_to_router_task = asyncio.create_task(self._send_to_router())
+            #     send_health_check_task = asyncio.create_task(self._send_health_check())
+
+            #     await asyncio.gather(
+            #         receive_from_router_task,
+            #         send_to_router_task,
+            #         send_health_check_task,
+            #     )
+            # except Exception as e:
+            #     print(e)
+            #     print("Resetuje połączenie")
 
     async def _receive_from_router(self) -> None:
         self.socket.setblocking(False)
@@ -91,14 +98,11 @@ class CommunicationModule:
                     raise ConnectionError("Rozłączono z routerem")
                 data = data.decode("utf-8")
                 data: DeviceMessage = DeviceMessage.from_json(data)
-                print(data)
                 self.from_server_queue.append(data)
             except OSError as e:
                 if e.args[0] not in (11, 35):  # EAGAIN, EWOULDBLOCK
                     print(f"Błąd sieciowy: {e}")
                     raise
-            except ConnectionError:
-                raise
             except Exception as e:
                 print(f"Błąd w odbiorze: {e}")
                 raise
@@ -118,31 +122,24 @@ class CommunicationModule:
             except Exception as e:
                 print("Błąd podczas wysyłania:", e)
 
-    async def _connect_to_network(self):
-        if not self.wlan.isconnected():
-            self.wlan.active(True)
-            self.wlan.connect(self.ssid, self.password)
-            print("Trwa łączenie z siecią wifi...")
-            count = 0
-            while not self.wlan.isconnected():
-                print(".")
-                count += 1
-                if count == 10:
-                    print("Nie udało się połączyć, ponawiam...")
-                    self.wlan.disconnect()
-                    count = 0
-                    self.wlan.connect(self.ssid, self.password)
-                await asyncio.sleep(1)
-            print("Adres IP:", self.wlan.ifconfig()[0])
-
     async def _send_health_check(self) -> None:
         while True:
             self.to_server_queue.append(
                 health_check_message(self.mac, self.wlan.status("rssi"))
             )
             self.send_data_event.set()
-            print("Wysłano health check")
             await asyncio.sleep(60)
+
+    async def connect(self):
+        self.wlan.active(True)
+        if not self.is_connected():
+            print("Próba połączenia z Wi-Fi...")
+            self.wlan.connect(self.ssid, self.password)
+            await asyncio.sleep(1)  # Czekaj asynchronicznie
+            if not self.is_connected():
+                self.wlan.disconnect()
+                self.wlan.active(False)
+            print("Połączono z Wi-Fi!")
 
     def get_connect_message(self) -> DeviceMessage:
         return connect_message(self.mac, self.fun, self.wlan.status("rssi"))

@@ -102,4 +102,5 @@ class RFID:
     ############################# RESPONSE #############################
 
     async def _set_settings_response(self, message: DeviceMessage) -> DeviceMessage:
+
         return accept_message(message)

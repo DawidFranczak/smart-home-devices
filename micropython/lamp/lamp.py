@@ -52,7 +52,7 @@ class Lamp:
                     temp_brightness = self.brightness
                 self.pca9685.duty(i, temp_brightness)
             self.pca9685.duty(i, self.brightness)
-
+    
     async def _turn_off(self, reverse=False):
         if not self.lamp_on:
             return

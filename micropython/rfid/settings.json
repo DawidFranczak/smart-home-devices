@@ -1,0 +1,5 @@
+{
+  "rfid_reset": 60000,
+  "add_tag_timeout": 10000,
+  "open_gate_timeout": 10000
+}

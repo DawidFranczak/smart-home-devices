@@ -1,9 +1,0 @@
-{
-  "ssid": "Tenda",
-  "password": "1RKKHAPIEJ",
-  "server_ip": "192.168.1.143",
-  "server_port": 8080,
-  "rfid_reset": 60000,
-  "add_tag_timeout": 10000,
-  "open_gate_timeout": 10000
-}

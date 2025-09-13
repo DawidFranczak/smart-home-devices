@@ -3,8 +3,10 @@
 
 const char* SSID = "Tenda";
 const char* PASSWORD = "1RKKHAPIEJ";
-const char* SERVER_IP = "192.168.1.143";
-const int SERVER_PORT = 8080;
+const char* BROKER_IP = "192.168.1.142";
+const int BROKER_PORT = 1883;
+const char* BROKER_NAME = "hub";
 const char* DEVICE_FUNCTION = "button";
 const int HEALT_CHECK_INTERVAL = 60000;
+
 #endif

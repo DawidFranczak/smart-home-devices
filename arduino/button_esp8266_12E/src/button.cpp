@@ -18,11 +18,11 @@ void Button::check_button() {
   static bool sended = false;
 
   if (press_time > 1000 && !sended) {
-    mqtt.sendMessage(onHoldRequest(mqtt.getMac()));
+    mqtt.sendMessage(onHoldMessage(mqtt.getMac()));
     sended = true;
     press_time = 0;
   } else if (press_time > 30 && press_time < 1000 and digitalRead(button_pin) == HIGH){
-    mqtt.sendMessage(onClickRequest(mqtt.getMac()));
+    mqtt.sendMessage(onClickMessage(mqtt.getMac()));
     press_time = 0;
   }
 

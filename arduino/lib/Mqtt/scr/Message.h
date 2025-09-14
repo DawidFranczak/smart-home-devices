@@ -9,11 +9,12 @@ struct Message {
     String message_event;
     String message_type;
     String device_id;
+    int qos;
     bool retain;
     JsonDocument payload;
 
-    Message(String id, String event, String type, String dev_id, JsonDocument pl, bool r = false)
-        : message_id(id), message_event(event), message_type(type), device_id(dev_id), retain(r), payload(pl) {}
+    Message(String id, String event, String type, String dev_id, JsonDocument pl, int qos = 0, bool retain = false)
+        : message_id(id), message_event(event), message_type(type), device_id(dev_id), qos(qos), retain(retain), payload(pl) {}
 
     String toJson() {
         JsonDocument doc;

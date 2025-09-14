@@ -3,8 +3,9 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <PubSubClient.h>
+#include <AsyncMqttClient.h>
 #include <Message.h>
+#include <Ticker.h>
 
 #define BUFFER_SIZE 10
 
@@ -19,7 +20,8 @@ class Mqtt {
     unsigned long healthCheckInterval;
 
     WiFiClient espClient;
-    PubSubClient client;
+    AsyncMqttClient client;
+    Ticker healthTicker;
 
     unsigned long lastHealthCheck = 0;
     std::function<void(Message&)> messageHandler;
@@ -28,6 +30,7 @@ class Mqtt {
 
     void reconnect();
     void sendToRouter();
+    void healthCheck();
 
   public:
     Mqtt(const char* brokerIp,
@@ -39,10 +42,9 @@ class Mqtt {
          unsigned long healthCheckInterval);
 
     String mac;
-    void loop();
+    void begin();
     void sendMessage(const Message message);
-    void updateClinet();
-    void setCallback(std::function<void(Message&)> cb);
+    void onMessage(std::function<void(Message&)> cb);
     String getMac();
 };
 

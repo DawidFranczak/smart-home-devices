@@ -5,6 +5,7 @@
 #include "Message.h"
 
 Message connectMessage(String mac, String fun, int wifiStrength);
-Message healthCheck(String mac, int wifiStrength);
-Message basicResonse(Message& message);
+Message healthCheckMessage(String mac, int wifiStrength);
+Message disconnectMessage(String mac);
+Message basicResonseMessage(Message& message);
 #endif

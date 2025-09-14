@@ -17,84 +17,87 @@ Mqtt::Mqtt(const char* brokerIp,
     password(password),
     deviceFunction(deviceFunction),
     healthCheckInterval(healthCheckInterval),
-    client(espClient)
+    client()
     {
       mac = WiFi.macAddress();
       client.setServer(brokerIp, brokerPort);
+
+      client.setWill(brokerName, 1, true, disconnectMessage(mac).toJson().c_str());
+
+      client.onConnect([this](bool sessionPresent) {
+        String topic = "device/" + this->mac + "/+";
+        client.subscribe(topic.c_str(), 1);
+        sendMessage(connectMessage(this->mac, this->deviceFunction, WiFi.RSSI()));
+        Serial.println("MQTT OK");
+      });
+
+      client.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
+        client.connect();
+      });
+
+      client.onMessage([this](char* topic, char* payload,
+                          AsyncMqttClientMessageProperties properties,
+                          size_t len, size_t index, size_t total) {
+        String msgStr;
+        for (size_t i = 0; i < len; i++) msgStr += (char)payload[i];
+        Message msg = Message::fromJson(msgStr);
+        if (messageHandler) messageHandler(msg);
+      });
+
+      healthTicker.attach(healthCheckInterval, [this](){
+        this->healthCheck();
+      });
     }
 
-void Mqtt::reconnect() {
-  while (!client.connected()) {
-    if (client.connect(deviceFunction)) {
-      String topic = "device/"+mac+"/+";
-      client.subscribe(topic.c_str());
-      sendMessage(connectMessage(mac, deviceFunction, WiFi.RSSI()));
-    } else {
-      delay(5000);
-    }
-  }
-}
-
-void Mqtt::loop() {
+void Mqtt::begin(){
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("Łączenie z WiFi: ");
-    Serial.println(ssid);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
-      Serial.print(".");
     }
-    Serial.println("\nWiFi OK");
+    Serial.println("WiFi OK");
   }
 
   if (!client.connected()) {
-    reconnect();
-  }
-
-  client.loop();
-  sendToRouter();
-  unsigned long now = millis();
-  if (now - lastHealthCheck > healthCheckInterval) {
-    lastHealthCheck = now;
+    client.connect();
   }
 }
 
 void Mqtt::sendToRouter(){
-  if (pointer > 0 && client.connected()) {
-    Message* msg = messageBuffer[0];
-    for (int  i = 0; i < pointer - 1; i++) {
-      messageBuffer[i] = messageBuffer[i + 1];
+  while(pointer > 0){
+    if (client.connected()) {
+      Message* msg = messageBuffer[0];
+      for (int  i = 0; i < pointer - 1; i++) {
+        messageBuffer[i] = messageBuffer[i + 1];
+      }
+      pointer--;
+      client.publish(brokerName, msg->qos, msg->retain, msg->toJson().c_str());
+      delete msg;
+    }else{
+      break;
     }
-    pointer--;
-    Serial.println(msg->toJson());
-    client.publish(brokerName, msg->toJson().c_str(), msg->retain);
-    delete msg;
   }
 }
 
 void Mqtt::sendMessage(Message msg)  {
+  if (!client.connected() && msg.qos == 0){
+    return;
+  }
   if (pointer < BUFFER_SIZE) {
     messageBuffer[pointer] = new Message(msg);
     pointer++ ;
   }
+  sendToRouter();
 }
 
-void Mqtt::setCallback(std::function<void(Message&)> cb) {
+void Mqtt::healthCheck() {
+  sendMessage(healthCheckMessage(mac, WiFi.RSSI()));
+}
+
+void Mqtt::onMessage(std::function<void(Message&)> cb) {
   messageHandler = cb;
-  client.setCallback([this](char* topic, byte* payload, unsigned int length) {
-    String msgStr;
-    for (unsigned int i = 0; i < length; i++) msgStr += (char)payload[i];
-
-    Message msg = Message::fromJson(msgStr);
-    if (messageHandler) messageHandler(msg);
-  });
-}
-
-void Mqtt::updateClinet(){
-    client.loop();
 }
 
 String Mqtt::getMac() {
   return mac;
 }
-

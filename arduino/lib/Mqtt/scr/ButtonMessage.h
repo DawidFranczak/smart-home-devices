@@ -5,7 +5,7 @@
 #include <ArduinoJson.h>
 #include "Message.h"
 
-Message onClickRequest(String mac);
-Message onHoldRequest(String mac);
+Message onClickMessage(String mac);
+Message onHoldMessage(String mac);
 
 #endif

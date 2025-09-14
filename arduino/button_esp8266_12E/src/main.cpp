@@ -8,14 +8,12 @@ Button button(2, mqtt);
 
 void setup() {
   // Serial.begin(9600);
-
-  mqtt.setCallback([](Message msg) {
-    Serial.println(msg.toJson());
+  mqtt.begin();
+  mqtt.onMessage([](Message msg) {
   });
 }
 
 void loop() {
-  mqtt.loop();
   button.loop();
   delay(10);
 }

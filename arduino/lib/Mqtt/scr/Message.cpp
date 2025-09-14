@@ -6,10 +6,12 @@ struct Message {
   String message_event;
   String message_type;
   String device_id;
+  int qos;
+  bool retain;
   JsonDocument payload;
   
   Message(String message_id, String message_event, String message_type, String device_id, JsonDocument payload)
-  :  message_id(message_id), message_event(message_event), message_type(message_type), device_id(device_id), payload(payload) {}
+  :  message_id(message_id), message_event(message_event), message_type(message_type), device_id(device_id), qos(qos), retain(retain), payload(payload) {}
 
   String toJson() const {
     JsonDocument doc;

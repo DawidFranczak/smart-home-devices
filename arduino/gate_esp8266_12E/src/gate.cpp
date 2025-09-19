@@ -1,61 +1,61 @@
 #include <Arduino.h>
 #include "gate.h"
 
-Gate::Gate(int gate_pin, int buzzer_pin) :
- gate_pin(gate_pin), buzzer_pin(buzzer_pin) {
-    pinMode(gate_pin, OUTPUT);
-    pinMode(buzzer_pin, OUTPUT);
-    access_granted_flag = false;
-    access_denied_flag = false;
-    open_gate_time = 10000;
-    last_access_granted_time = 0;
-    last_access_denied_time = 0;
-    access_denied_counter = 0;
+Gate::Gate(int gatePin, int buzzerPin) :
+ gatePin(gatePin), buzzerPin(buzzerPin) {
+    pinMode(gatePin, OUTPUT);
+    pinMode(buzzerPin, OUTPUT);
+    accessGrantedFlag = false;
+    accessDeniedFlag = false;
+    openGateTime = 10000;
+    lastAccessGrantedTime = 0;
+    lastAccessDeniedTime = 0;
+    accessDeniedCounter = 0;
 }
-void Gate::start(){
-    if (access_granted_flag) {
-        _access_granted();
-    } else if (access_denied_flag) {
-        _access_denied();
+void Gate::loop(){
+    if (accessGrantedFlag) {
+        _accessGranted();
+    } else if (accessDeniedFlag) {
+        _accessDenied();
     }
 }
-void Gate::access_granted(int open_gate_time){    
-    access_denied_flag = false;
-    access_granted_flag = true;
-    this->open_gate_time = open_gate_time;
-    last_access_granted_time = millis();
+void Gate::accessGranted(int openGateTime){    
+    accessDeniedFlag = false;
+    accessGrantedFlag = true;
+    this->openGateTime = openGateTime;
+    lastAccessGrantedTime = millis();
 }
 
-void Gate::access_denied(){
-    access_denied_flag = true;
-    access_granted_flag = false;
-    last_access_denied_time = millis();
+void Gate::accessDenied(){
+    accessDeniedFlag = true;
+    accessGrantedFlag = false;
+    lastAccessDeniedTime = millis();
 }
 
-void Gate::_access_granted(){
-    digitalWrite(gate_pin, HIGH);
-    digitalWrite(buzzer_pin, HIGH); 
-    if (millis() - last_access_granted_time < open_gate_time) return;
-    digitalWrite(gate_pin, LOW);
-    digitalWrite(buzzer_pin, LOW);
-    access_granted_flag = false;
-    last_access_granted_time = millis();
+void Gate::_accessGranted(){
+    digitalWrite(gatePin, HIGH);
+    digitalWrite(buzzerPin, HIGH); 
+    if (millis() - lastAccessGrantedTime < openGateTime) return;
+    digitalWrite(gatePin, LOW);
+    digitalWrite(buzzerPin, LOW);
+    accessGrantedFlag = false;
+    lastAccessGrantedTime = millis();
 
 }
-void Gate::_access_denied(){
-    digitalWrite(gate_pin, LOW);
-    if (millis() - last_access_denied_time > 600) {
-        access_denied_counter++;
-        last_access_denied_time = millis();
-        if (access_denied_counter < 4) return; 
-        access_denied_flag = false;
-        access_denied_counter = 0;
-        digitalWrite(buzzer_pin, LOW);
-    }else if (millis() - last_access_denied_time > 400) {
-        digitalWrite(buzzer_pin, LOW);
+void Gate::_accessDenied(){
+    digitalWrite(gatePin, LOW);
+    if (millis() - lastAccessDeniedTime > 600) {
+        accessDeniedCounter++;
+        lastAccessDeniedTime = millis();
+        if (accessDeniedCounter < 4) return; 
+        accessDeniedFlag = false;
+        accessDeniedCounter = 0;
+        digitalWrite(buzzerPin, LOW);
+    }else if (millis() - lastAccessDeniedTime > 400) {
+        digitalWrite(buzzerPin, LOW);
         return;
-    }else if (millis() - last_access_denied_time > 200) {
-        digitalWrite(buzzer_pin, HIGH);
+    }else if (millis() - lastAccessDeniedTime > 200) {
+        digitalWrite(buzzerPin, HIGH);
         return;
     }
 }

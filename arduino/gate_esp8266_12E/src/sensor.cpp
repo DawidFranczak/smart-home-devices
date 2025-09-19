@@ -7,11 +7,12 @@ Sensor::Sensor(int SS_PIN, int RST_PIN) {
     rfid.PCD_Init(); 
 }
 
-void Sensor::start(){
+void Sensor::loop(){
   if (rfid.PCD_PerformSelfTest()) return;
   rfid.PCD_Init(); 
 }
-String Sensor::read_uid(){
+
+String Sensor::readUid(){
     String UID = "";
     if(!rfid.PICC_IsNewCardPresent()) return UID;
     if (rfid.PICC_ReadCardSerial()) {

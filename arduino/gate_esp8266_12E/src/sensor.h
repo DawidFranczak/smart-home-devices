@@ -6,8 +6,8 @@
 class Sensor{
     public:
         Sensor(int SS_PIN, int RST_PIN);
-        void start();
-        String read_uid();
+        void loop();
+        String readUid();
 
     private:
         MFRC522 rfid;

@@ -1,108 +1,98 @@
 #include <Arduino.h>
-#include "CommunicationProtocol/communication_module.h"
-#include "CommunicationProtocol/message.h"
+#include <Mqtt.h>
 #include "device.h"
+#include "BasicMessage.h"
+#include "RfidMessage.h"
+#include "ButtonMessage.h"
 
 
-Device::Device(CommunicationModule& comunication_module, Sensor& sensor, Gate& gate, int opto_pin):
-    communication_module(comunication_module),
+Device::Device(Mqtt& mqtt, Sensor& sensor, Gate& gate, int optoPin):
+    mqtt(mqtt),
     sensor(sensor),
     gate(gate),
-    opto_pin(opto_pin){
-    pinMode(opto_pin, INPUT_PULLUP);
-    open_gate_timeout = 10000;
-    add_tag_timeout = 10000;
-    add_tag_flag = false;
-    add_tag_start = 0;
-    add_tag_message = nullptr;
+    optoPin(optoPin){
+    pinMode(optoPin, INPUT_PULLUP);
+    openGateTimeout = 10000;
+    addTagTimeout = 10000;
+    addTagStart = 0;
 }
-void Device::start(){
-    check_message();
-    if (add_tag_flag){
-        add_tag();
+void Device::loop(){
+    checkSensor();
+    checkOpto();
+}
+void Device::onMessage(Message message){
+    if (message.message_event == "add_tag") {
+        addTag(message);
+    } else if (message.message_event == "access_granted") {
+        accessGrantedRequest(message);
+    } else if (message.message_event == "access_denied") {
+        accessDeniedRequest(message);
+    } else if (message.message_event == "set_settings") {
+        setSettingsResponse(message);
+    } else if (message.message_event == "get_settings") {
+        setSettingsResponse(message);
+    }
+}
+void Device::checkSensor(){
+    String uid = sensor.readUid();
+    if (addTagFlag){
+        if (millis() - addTagStart > addTagTimeout) {
+            if (addTagMessage.has_value()) {
+                mqtt.sendMessage(addTagResponse(*addTagMessage, "0"));
+            }
+            addTagFlag=false;
+            return;
+        }
+        if (uid == "") return; 
+        if (addTagMessage.has_value()) {
+            mqtt.sendMessage(addTagResponse(*addTagMessage, uid));
+            addTagFlag=false;
+        }
     }else{
-        check_sensor();
+        if (uid == "") return; 
+        mqtt.sendMessage(onReadRequest(mqtt.getMac(), uid));
     }
-    check_opto();
-}
-void Device::check_message(){
-    DeviceMessage* message = communication_module.get_message();
-    if (message == nullptr) return;
-    String method_name = communication_module.extract_method_name_from_message(*message);
-    if (method_name == "_add_tag_request") {
-        add_tag_request(*message);
-    } else if (method_name == "_access_granted_request") {
-        access_granted_request(*message);
-    } else if (method_name == "_access_denied_request") {
-        access_denied_request(*message);
-    } else if (method_name == "_set_settings_response") {
-        set_settings_response(*message);
-    }
-    delete message;
-}
-void Device::check_sensor(){
-    String uid = sensor.read_uid();
-    if (uid == "") return; 
-    DeviceMessage message = on_read_request(communication_module.get_mac(), uid);
-    communication_module.send_message(message); 
 }
 
-void Device::add_tag(){
-    if (millis() - add_tag_start > add_tag_timeout) {
-        add_tag_flag = false;
-        communication_module.send_message(add_tag_response(*add_tag_message, ""));
-        delete add_tag_message;
-        add_tag_message = nullptr;
-        return;
-    }
-    String uid = sensor.read_uid();
-    if (uid == "") return; 
-    communication_module.send_message(add_tag_response(*add_tag_message, uid)); 
-    delete add_tag_message;
-    add_tag_message = nullptr;
-    add_tag_flag = false;
+void Device::addTag(Message message){
+    addTagStart = millis();
+    addTagMessage = message;
+    addTagFlag = true;
 }
 
-void Device::check_opto(){
-    static unsigned long last_check = 0;
-    static int press_time = 0;
+void Device::checkOpto(){
+    static unsigned long lastCheck = 0;
+    static int pressTime = 0;
     static bool sended = false;
   
-    if (press_time > 1000 && !sended) {
+    if (pressTime > 1000 && !sended) {
       sended = true;
-      DeviceMessage message = on_hold_request(communication_module.get_mac());
-      communication_module.send_message(message);
-      press_time = 0;
-      gate.access_granted(open_gate_timeout);
-    } else if (press_time > 30 && press_time < 1000 and digitalRead(opto_pin) == HIGH){
-      DeviceMessage message = on_click_request(communication_module.get_mac());
-      communication_module.send_message(message);
-      press_time = 0;
-      gate.access_granted(open_gate_timeout);
+      mqtt.sendMessage(onHoldRequest(mqtt.getMac()));
+      pressTime = 0;
+      gate.accessGranted(openGateTimeout);
+    } else if (pressTime > 30 && pressTime < 1000 && digitalRead(optoPin) == HIGH){
+      mqtt.sendMessage(onClickRequest(mqtt.getMac()));
+      pressTime = 0;
+      gate.accessGranted(openGateTimeout);
     }
   
-    if (digitalRead(opto_pin) == HIGH){
-      last_check = millis();
+    if (digitalRead(optoPin) == HIGH){
+      lastCheck = millis();
       sended = false;
-      press_time = 0;
-    }else {
-      press_time = millis() - last_check;
+      pressTime = 0;
+    } else {
+      pressTime = millis() - lastCheck;
     }
 }
-void Device::add_tag_request(DeviceMessage message){
-    add_tag_flag = true;
-    add_tag_message = new DeviceMessage(message);
-    add_tag_start = millis();
-}
 
-void Device::access_granted_request(DeviceMessage message){
-    gate.access_granted(open_gate_timeout);
-    communication_module.send_message(accept_response(message));
+void Device::accessGrantedRequest(Message message){
+    gate.accessGranted(openGateTimeout);
+    mqtt.sendMessage(basicResonse(message));
 }
-void Device::access_denied_request(DeviceMessage message){
-    gate.access_denied();
-    communication_module.send_message(accept_response(message));
+void Device::accessDeniedRequest(Message message){
+    gate.accessDenied();
+    mqtt.sendMessage(basicResonse(message));
 }
-void Device::set_settings_response(DeviceMessage message){
-    communication_module.send_message(accept_response(message));
+void Device::setSettingsResponse(Message message){
+    mqtt.sendMessage(basicResonse(message));
 }

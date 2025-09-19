@@ -1,27 +1,25 @@
 #include <Arduino.h>
-#include "CommunicationProtocol/communication_module.h"
 #include "sensor.h"
 #include "gate.h"
 #include "device.h"
+#include "settings.h"
 
-CommunicationModule communication_module;
-Sensor sensor(16, 15);
-Gate gate(4,5);
-Device device(communication_module, sensor, gate, 0);
+Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, HEALT_CHECK_INTERVAL);
+Sensor sensor(SS_PIN, RST_PIN);
+Gate gate(GATE_PIN,BUZZER_PIN);
+Device device(mqtt, sensor, gate, OPTO_PIN);
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
+  mqtt.begin();
+  mqtt.onMessage([](Message message) {
+    device.onMessage(message);
+  });
 }
 
 void loop() {
-  if (communication_module.is_connected()) {
-    digitalWrite(LED_BUILTIN, HIGH); 
-  } else {
-    digitalWrite(LED_BUILTIN, LOW); 
-  }
-  communication_module.start();
-  device.start();
-  gate.start();
-  sensor.start();
+  device.loop();
+  gate.loop();
+  sensor.loop();
   delay(10);
 }

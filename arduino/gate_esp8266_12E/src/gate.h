@@ -3,22 +3,22 @@
 #define GATE_H
 class Gate{
     public:
-        Gate(int gate_pin, int buzzer_pin);
-        void start();
-        void access_granted(int open_gate_time);
-        void access_denied();
+        Gate(int gatePin, int buzzerPin);
+        void loop();
+        void accessGranted(int openGateTime);
+        void accessDenied();
     
     private:
-        int gate_pin;
-        int buzzer_pin;
-        unsigned long open_gate_time;
-        bool access_granted_flag;
-        bool access_denied_flag;
-        int access_denied_counter;
-        unsigned long last_access_granted_time;
-        unsigned long last_access_denied_time;
-        void _access_granted();
-        void _access_denied();
+        int gatePin;
+        int buzzerPin;
+        unsigned long openGateTime;
+        bool accessGrantedFlag;
+        bool accessDeniedFlag;
+        int accessDeniedCounter;
+        unsigned long lastAccessGrantedTime;
+        unsigned long lastAccessDeniedTime;
+        void _accessGranted();
+        void _accessDenied();
 };
 
 #endif

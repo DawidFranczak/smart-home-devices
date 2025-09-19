@@ -21,18 +21,21 @@ Mqtt::Mqtt(const char* brokerIp,
     {
       mac = WiFi.macAddress();
       client.setServer(brokerIp, brokerPort);
-
-      client.setWill(brokerName, 1, true, disconnectMessage(mac).toJson().c_str());
+      willMessage = disconnectRequest(mac).toJson();
+      client.setWill(brokerName, 1, true, willMessage.c_str());
+      client.setKeepAlive(5);
 
       client.onConnect([this](bool sessionPresent) {
         String topic = "device/" + this->mac + "/+";
         client.subscribe(topic.c_str(), 1);
-        sendMessage(connectMessage(this->mac, this->deviceFunction, WiFi.RSSI()));
+        sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
         Serial.println("MQTT OK");
+        connected = true;
       });
 
       client.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
         client.connect();
+        connected = false;
       });
 
       client.onMessage([this](char* topic, char* payload,
@@ -41,6 +44,10 @@ Mqtt::Mqtt(const char* brokerIp,
         String msgStr;
         for (size_t i = 0; i < len; i++) msgStr += (char)payload[i];
         Message msg = Message::fromJson(msgStr);
+        if (msg.message_event == "device_connect"){
+          sendMessage(getSettings(this->getMac()));
+          return;
+        }
         if (messageHandler) messageHandler(msg);
       });
 
@@ -79,6 +86,10 @@ void Mqtt::sendToRouter(){
   }
 }
 
+bool Mqtt::isConnected(){
+  return connected;
+}
+
 void Mqtt::sendMessage(Message msg)  {
   if (!client.connected() && msg.qos == 0){
     return;
@@ -91,7 +102,7 @@ void Mqtt::sendMessage(Message msg)  {
 }
 
 void Mqtt::healthCheck() {
-  sendMessage(healthCheckMessage(mac, WiFi.RSSI()));
+  sendMessage(healthCheckRequest(mac, WiFi.RSSI()));
 }
 
 void Mqtt::onMessage(std::function<void(Message&)> cb) {

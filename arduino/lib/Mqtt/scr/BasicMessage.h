@@ -4,8 +4,9 @@
 #include <ArduinoJson.h>
 #include "Message.h"
 
-Message connectMessage(String mac, String fun, int wifiStrength);
-Message healthCheckMessage(String mac, int wifiStrength);
-Message disconnectMessage(String mac);
-Message basicResonseMessage(Message& message);
+Message connectRequest(String mac, String fun, int wifiStrength);
+Message healthCheckRequest(String mac, int wifiStrength);
+Message disconnectRequest(String mac);
+Message getSettings(String mac);
+Message basicResonse(Message& message, bool accept=true);
 #endif

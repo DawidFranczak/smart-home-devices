@@ -1,11 +1,11 @@
 #include "ButtonMessage.h"
 
-Message onClickMessage(String mac) {
+Message onClickRequest(String mac) {
   JsonDocument payload;
   return Message(String(millis()), "on_click", "request", mac, payload);
 }
 
-Message onHoldMessage(String mac) {
+Message onHoldRequest(String mac) {
   JsonDocument payload;
   return Message(String(millis()), "on_hold", "request", mac, payload);
 }

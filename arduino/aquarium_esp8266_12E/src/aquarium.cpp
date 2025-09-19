@@ -1,80 +1,66 @@
 #include <Arduino.h>
+#include <BasicMessage.h>
 #include "aquarium.h"
 
-Aquarium::Aquarium(int r_pin, int g_pin, int b_pin, int fluo_pin, CommunicationModule& communication_module)
-  : r_pin(r_pin), g_pin(g_pin), b_pin(b_pin), fluo_pin(fluo_pin), communication_module(communication_module){
-  pinMode(r_pin, OUTPUT);
-  pinMode(g_pin, OUTPUT);
-  pinMode(b_pin, OUTPUT);
-  pinMode(fluo_pin, OUTPUT);
-  r_value = 0;
-  g_value = 0;
-  b_value = 0;
-  fluo_value = false;
-  led_value = false;
+Aquarium::Aquarium(int rPin, int gPin, int bPin, int fluoPin, Mqtt& mqtt)
+  : rPin(rPin), gPin(gPin), bPin(bPin), fluoPin(fluoPin), mqtt(mqtt){
+  pinMode(rPin, OUTPUT);
+  pinMode(gPin, OUTPUT);
+  pinMode(bPin, OUTPUT);
+  pinMode(fluoPin, OUTPUT);
+  rValue = 0;
+  gValue = 0;
+  bValue = 0;
+  fluoValue = false;
+  ledValue = false;
 }
 
-void Aquarium::start() {
-  check_message();
-  update_led();
-  update_fluo();
-}
-
-void Aquarium::check_message() {
-  DeviceMessage* message = communication_module.get_message();
-  if (!message) return;
-  String method_name = communication_module.extract_method_name_from_message(*message);
-  if (method_name == "_set_settings_response") {
-    communication_module.send_message(set_settings_response(*message));
-  } else if (method_name == "_set_settings_request") {
-    communication_module.send_message(set_settings_request(*message));
+void Aquarium::onMessage(Message message){
+  if(message.message_event == "set_settings"){
+    setSettings(message);
+    mqtt.sendMessage(basicResonse(message));
+  }else if(message.message_event == "get_settings"){
+    setSettings(message);
   }
-  delete message;
 }
 
-DeviceMessage Aquarium::set_settings_request(DeviceMessage& message) {
-  return set_settings_response(message);
-}
-
-DeviceMessage Aquarium::set_settings_response(DeviceMessage& message) {
+void Aquarium::setSettings(Message message) {
+  Serial.println(message.toJson());
     if (message.payload["color_r"].is<int>()) {
-        r_value = message.payload["color_r"].as<int>();
+        rValue = message.payload["color_r"].as<int>();
     }
     if (message.payload["color_g"].is<int>()) {
-        g_value = message.payload["color_g"].as<int>();
+        gValue = message.payload["color_g"].as<int>();
     }
     if (message.payload["color_b"].is<int>()) {
-        b_value = message.payload["color_b"].as<int>();
+        bValue = message.payload["color_b"].as<int>();
     }
     if (message.payload["fluo_mode"].is<bool>()) {
-        fluo_value = message.payload["fluo_mode"].as<bool>();
+        fluoValue = message.payload["fluo_mode"].as<bool>();
     }
     if (message.payload["led_mode"].is<bool>()) {
-        led_value = message.payload["led_mode"].as<bool>();
+        ledValue = message.payload["led_mode"].as<bool>();
     }
-    update_led();
-    update_fluo();
-    JsonDocument payload;
-    payload["status"] = "accept";
-    return DeviceMessage(message.message_id, message.message_event, "response", message.device_id, payload);
+    updateLed();
+    updateFluo();
 }
 
-void Aquarium::update_led() {
-  if (led_value) {
-    analogWrite(r_pin, r_value);
-    analogWrite(g_pin, g_value);
-    analogWrite(b_pin, b_value);
+void Aquarium::updateLed() {
+  if (ledValue) {
+    analogWrite(rPin, rValue);
+    analogWrite(gPin, gValue);
+    analogWrite(bPin, bValue);
   } else {
-    digitalWrite(r_pin, LOW);
-    digitalWrite(g_pin, LOW);
-    digitalWrite(b_pin, LOW);
+    digitalWrite(rPin, LOW);
+    digitalWrite(gPin, LOW);
+    digitalWrite(bPin, LOW);
   }
 }
 
-void Aquarium::update_fluo() {
-  if (fluo_value) {
-    digitalWrite(fluo_pin, HIGH);
+void Aquarium::updateFluo() {
+  if (fluoValue) {
+    digitalWrite(fluoPin, HIGH);
   } else {
-    digitalWrite(fluo_pin, LOW);
+    digitalWrite(fluoPin, LOW);
   }
 }

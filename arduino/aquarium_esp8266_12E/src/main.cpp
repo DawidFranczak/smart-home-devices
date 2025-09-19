@@ -1,22 +1,26 @@
 #include <Arduino.h>
-#include "CommunicationProtocol/communication_module.h"
+#include <Mqtt.h>
 #include "aquarium.h"
+#include "settings.h"
 
-CommunicationModule communication_module;
-//14, 12, 13, 0
-Aquarium aquarium(D5, D6, D7, D3, communication_module);
+Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, HEALT_CHECK_INTERVAL);
+
+Aquarium aquarium(R_PIN, G_PIN, B_PIN, FLUO_PIN, mqtt);
+
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  mqtt.begin();
+  mqtt.onMessage([](Message msg) {
+    aquarium.onMessage(msg);
+  });
 }
 
 void loop() {
-  if (communication_module.is_connected()) {
+  if (mqtt.isConnected()) {
     digitalWrite(LED_BUILTIN, HIGH); 
   } else {
     digitalWrite(LED_BUILTIN, LOW); 
   }
-  communication_module.start();
-  aquarium.start();
   delay(10);
 }
 

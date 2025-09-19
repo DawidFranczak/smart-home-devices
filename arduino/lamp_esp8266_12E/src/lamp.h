@@ -1,7 +1,7 @@
 #ifndef LAMP_H
 #define LAMP_H
 
-#include "CommunicationProtocol/communication_module.h"
+#include <Mqtt.h>
 #include "Adafruit_PWMServoDriver.h"
 
 enum LampState {
@@ -13,36 +13,34 @@ enum LampState {
 
 class Lamp{
     public:
-        Lamp(CommunicationModule& communication_module);
-        void start();
+        Lamp(Mqtt& mqtt, int lampCount);
+        void loop();
+        void onMessage(Message message);
 
     private:
-        int lamp_count;
-        int current_lamp_index;
-        bool is_pending;
-        bool lamp_on;
+        int lampCount;
+        int currentLampIndex;
+        bool isPending;
+        bool lampOn;
         int brightness;
-        unsigned long step;
-        unsigned long lighting_time;
+        int step;
+        unsigned long lightingTime;
         bool reverse;
-        unsigned long last_update;
-        int current_lamp;
-        int current_brightness;
+        unsigned long lastUpdate;
+        int currentLamp;
+        int currentBrightness;
         LampState state;
-        unsigned long blink_start_time;
+        unsigned long blinkStartTime;
 
-        CommunicationModule& communication_module;
+        Mqtt& mqtt;
         Adafruit_PWMServoDriver pwm;
-        void check_message();
-        void update_lamp();
-        void turn_on_lamp_request();
-        void turn_off_lamp_request();
-        void blink_lamp_request();
-        void toggle_lamp_request();
-        bool _turn_on();
-        bool _turn_off();
-        DeviceMessage set_settings_response(DeviceMessage& message);
-        DeviceMessage set_settings_request(DeviceMessage& message);
-        DeviceMessage accept_request(DeviceMessage& message);
+        void updateLamp();
+        void turnOnLampRequest();
+        void turnOffLampRequest();
+        void blinkLampRequest();
+        void toggleLampRequest();
+        void setSettings(Message message);
+        bool _turnOn();
+        bool _turnOff();
 };
 #endif 

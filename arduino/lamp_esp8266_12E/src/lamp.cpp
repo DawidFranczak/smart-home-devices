@@ -1,17 +1,19 @@
 #include "Arduino.h"
+#include "Mqtt.h"
 #include "lamp.h"
 #include "Adafruit_PWMServoDriver.h"
 #include "ArduinoJson.h"
-Lamp::Lamp(CommunicationModule& communication_module) : communication_module(communication_module) {
-    is_pending = false;
-    lamp_on = false;
+#include "BasicMessage.h"
+
+Lamp::Lamp(Mqtt& mqtt, int lampCount) : mqtt(mqtt),lampCount(lampCount) {
+    isPending = false;
+    lampOn = false;
     brightness = 4095;
     step = 20;
-    lighting_time = 10000;
+    lightingTime = 10000;
     reverse = false;
     state = IDLE;
-    lamp_count = 4;
-    current_lamp_index = 0;
+    currentLampIndex = 0;
     pwm = Adafruit_PWMServoDriver();
     pwm.begin();    
     pwm.setPWMFreq(50);
@@ -20,158 +22,144 @@ Lamp::Lamp(CommunicationModule& communication_module) : communication_module(com
     }
 };
 
-void Lamp::start() {
-    check_message();
-    update_lamp();
+void Lamp::loop() {
+    updateLamp();
 }
 
-void Lamp::check_message() {
-    DeviceMessage* message = communication_module.get_message();
-    if (message == nullptr) return;
-    String method_name = communication_module.extract_method_name_from_message(*message);
+void Lamp::onMessage(Message message) {
     reverse = false;
-    if (message->payload["reverse"].is<bool>()) {
-        reverse = message->payload["reverse"].as<bool>();
+    if (message.payload["reverse"].is<bool>()) {
+        reverse = message.payload["reverse"].as<bool>();
     }
-    if (method_name == "_set_settings_response") {
-        communication_module.send_message(set_settings_response(*message));
-    } else if (method_name == "_set_settings_request") {
-        communication_module.send_message(set_settings_request(*message));
-    } else if (method_name == "_off_request") {
-        turn_off_lamp_request();
-        // communication_module.send_message(accept_request(*message));
-    } else if (method_name == "_on_request") {
-        turn_on_lamp_request();
-        // communication_module.send_message(accept_request(*message));
-    } else if (method_name == "_blink_request") {
-        blink_lamp_request();
-        // communication_module.send_message(accept_request(*message));
-    } else if (method_name == "_toggle_request") {
-        toggle_lamp_request();
-        // communication_module.send_message(accept_request(*message));
-
+    if (message.message_event == "get_settings") {
+        setSettings(message);
+        mqtt.sendMessage(basicResponse(message));
+    } else if (message.message_event == "set_settings") {
+        setSettings(message);
+        mqtt.sendMessage(basicResponse(message));
+    } else if (message.message_event == "off") {
+        turnOffLampRequest();
+        mqtt.sendMessage(basicResponse(message));
+    } else if (message.message_event == "on") {
+        turnOnLampRequest();
+        mqtt.sendMessage(basicResponse(message));
+    } else if (message.message_event == "blink") {
+        blinkLampRequest();
+        mqtt.sendMessage(basicResponse(message));
+    } else if (message.message_event == "toggle") {
+        toggleLampRequest();
+        mqtt.sendMessage(basicResponse(message));
     }
 }
 
-void Lamp::update_lamp() {
+void Lamp::updateLamp() {
 
     switch (state) {
         case IDLE:
             break;
 
         case TURNING_ON:
-            if(!_turn_on()) break; 
-            lamp_on = true;
-            is_pending = false;
+            if(!_turnOn()) break; 
+            lampOn = true;
+            isPending = false;
             state = IDLE;
             break;
 
         case TURNING_OFF:
-            if(!_turn_off()) break; 
-            lamp_on = false;
-            is_pending = false;
+            if(!_turnOff()) break; 
+            lampOn = false;
+            isPending = false;
             state = IDLE;
             break;
 
         case BLINKING:
-            if (!lamp_on) {
-                lamp_on = _turn_on();
-                last_update = millis();
+            if (!lampOn) {
+                lampOn = _turnOn();
+                lastUpdate = millis();
                 break;
             }
-            if (millis() - last_update < lighting_time) break;
-            is_pending = false;
-            turn_off_lamp_request();
+            if (millis() - lastUpdate < lightingTime) break;
+            isPending = false;
+            turnOffLampRequest();
             break;
     }
 }
 
-void Lamp::turn_on_lamp_request() {
-    if (is_pending || lamp_on) return;
-    is_pending = true;
+void Lamp::turnOnLampRequest() {
+    if (isPending || lampOn) return;
+    isPending = true;
     state = TURNING_ON;
-    last_update = millis();
-    current_brightness = 0;
-    current_lamp_index = reverse ? lamp_count - 1 : 0;
+    lastUpdate = millis();
+    currentBrightness = 0;
+    currentLampIndex = reverse ? lampCount - 1 : 0;
 }
 
-void Lamp::turn_off_lamp_request() {
-    if (is_pending || !lamp_on) return;
-    is_pending = true;
+void Lamp::turnOffLampRequest() {
+    if (isPending || !lampOn) return;
+    isPending = true;
     state = TURNING_OFF;
-    last_update = millis();
-    current_brightness = brightness;
-    current_lamp_index = reverse ? lamp_count - 1 : 0;  
+    lastUpdate = millis();
+    currentBrightness = brightness;
+    currentLampIndex = reverse ? lampCount - 1 : 0;  
 }
 
-void Lamp::blink_lamp_request() {
-    if (is_pending) return;
-    is_pending = true;
+void Lamp::blinkLampRequest() {
+    if (isPending) return;
+    isPending = true;
     state = BLINKING;
-    current_brightness = 0;
-    current_lamp_index = reverse ? lamp_count - 1 : 0;  
+    currentBrightness = 0;
+    currentLampIndex = reverse ? lampCount - 1 : 0;  
 }
 
-void Lamp::toggle_lamp_request() {
-    if (is_pending) return;
-    is_pending = true;
-    state = lamp_on ? TURNING_OFF : TURNING_ON;
-    last_update = millis();
-    current_brightness = 0;
-    current_lamp_index = reverse ? lamp_count - 1 : 0;  
+void Lamp::toggleLampRequest() {
+    if (isPending) return;
+    isPending = true;
+    state = lampOn ? TURNING_OFF : TURNING_ON;
+    lastUpdate = millis();
+    currentBrightness = lampOn ? brightness : 0;
+    currentLampIndex = reverse ? lampCount - 1 : 0;  
 }
 
-DeviceMessage Lamp::set_settings_request(DeviceMessage& message) {
-    return set_settings_response(message);
-}
-
-DeviceMessage Lamp::set_settings_response(DeviceMessage& message) {
+void Lamp::setSettings(Message message) {
     if (message.payload["brightness"].is<int>()) {
         brightness = message.payload["brightness"].as<int>() * 40.95;
     }
     if (message.payload["step"].is<int>()) {
         step = message.payload["step"].as<int>();
     }
-    if (message.payload["lighting_time"].is<int>()) {
-        lighting_time = message.payload["lighting_time"].as<int>()*1000;
+    if (message.payload["lightingTime"].is<int>()) {
+        lightingTime = message.payload["lightingTime"].as<int>()*1000;
     }
-   return accept_request(message);
 }
 
-DeviceMessage Lamp::accept_request(DeviceMessage& message){
-    JsonDocument payload;
-    payload["status"] = "accept";
-    return DeviceMessage(message.message_id, message.message_event, "response", message.device_id, payload);
-}
-
-bool Lamp::_turn_on(){
-    if (current_brightness < brightness) {
-        current_brightness += step;
-        if (current_brightness > brightness) current_brightness = brightness;
-        pwm.setPWM(current_lamp_index, 0, current_brightness);
+bool Lamp::_turnOn(){
+    if (currentBrightness < brightness) {
+        currentBrightness += step;
+        if (currentBrightness > brightness) currentBrightness = brightness;
+        pwm.setPWM(currentLampIndex, 0, currentBrightness);
     } else {
-        current_lamp_index = reverse ? current_lamp_index - 1 : current_lamp_index + 1;
-        if (current_lamp_index >= 0 && current_lamp_index < lamp_count) {
-            current_brightness = 0;
-            pwm.setPWM(current_lamp_index, 0, current_brightness);
+        currentLampIndex = reverse ? currentLampIndex - 1 : currentLampIndex + 1;
+        if (currentLampIndex >= 0 && currentLampIndex < lampCount) {
+            currentBrightness = 0;
+            pwm.setPWM(currentLampIndex, 0, currentBrightness);
         }
-        return (reverse && current_lamp_index < 0) || (!reverse && current_lamp_index >= lamp_count);
+        return (reverse && currentLampIndex < 0) || (!reverse && currentLampIndex >= lampCount);
     }
     return false;
 };
 
-bool Lamp::_turn_off(){
-    if (current_brightness > 0) {
-        current_brightness -= step;
-        if (current_brightness < 0) current_brightness = 0;
-        pwm.setPWM(current_lamp_index, 0, current_brightness);
+bool Lamp::_turnOff(){
+    if (currentBrightness > 0) {
+        currentBrightness -= step;
+        if (currentBrightness < 0) currentBrightness = 0;
+        pwm.setPWM(currentLampIndex, 0, currentBrightness);
     } else {
-        current_lamp_index = reverse ? current_lamp_index - 1 : current_lamp_index + 1;
-        if (current_lamp_index >= 0 && current_lamp_index < lamp_count) {
-            current_brightness = brightness;
-            pwm.setPWM(current_lamp_index, 0, current_brightness);
+        currentLampIndex = reverse ? currentLampIndex - 1 : currentLampIndex + 1;
+        if (currentLampIndex >= 0 && currentLampIndex < lampCount) {
+            currentBrightness = brightness;
+            pwm.setPWM(currentLampIndex, 0, currentBrightness);
         }
-        return (reverse && current_lamp_index < 0) || (!reverse && current_lamp_index >= lamp_count);
+        return (reverse && currentLampIndex < 0) || (!reverse && currentLampIndex >= lampCount);
     }
     return false;
 };

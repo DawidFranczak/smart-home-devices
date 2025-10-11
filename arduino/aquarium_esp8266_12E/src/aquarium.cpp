@@ -18,7 +18,7 @@ Aquarium::Aquarium(int rPin, int gPin, int bPin, int fluoPin, Mqtt& mqtt)
 void Aquarium::onMessage(Message message){
   if(message.message_event == "set_settings"){
     setSettings(message);
-    mqtt.sendMessage(basicResonse(message));
+    mqtt.sendMessage(basicResponse(message));
   }else if(message.message_event == "get_settings"){
     setSettings(message);
   }

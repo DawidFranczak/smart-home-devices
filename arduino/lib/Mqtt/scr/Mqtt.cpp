@@ -28,6 +28,7 @@ Mqtt::Mqtt(const char* brokerIp,
       client.onConnect([this](bool sessionPresent) {
         String topic = "device/" + this->mac + "/+";
         client.subscribe(topic.c_str(), 1);
+        client.subscribe("device/broadcast/",1);
         sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
         Serial.println("MQTT OK");
         connected = true;
@@ -44,7 +45,10 @@ Mqtt::Mqtt(const char* brokerIp,
         String msgStr;
         for (size_t i = 0; i < len; i++) msgStr += (char)payload[i];
         Message msg = Message::fromJson(msgStr);
-        if (msg.message_event == "device_connect"){
+        if (msg.message_event == "get_connected_devices"){
+          sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
+          return;
+        }else if (msg.message_event == "device_connect"){
           sendMessage(getSettings(this->getMac()));
           return;
         }

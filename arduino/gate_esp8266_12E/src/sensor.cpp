@@ -8,6 +8,7 @@ Sensor::Sensor(int SS_PIN, int RST_PIN) {
 }
 
 void Sensor::loop(){
+  Serial.println(rfid.PCD_PerformSelfTest());
   if (rfid.PCD_PerformSelfTest()) return;
   rfid.PCD_Init(); 
 }

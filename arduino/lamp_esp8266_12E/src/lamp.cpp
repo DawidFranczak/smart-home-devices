@@ -127,8 +127,8 @@ void Lamp::setSettings(Message message) {
     if (message.payload["step"].is<int>()) {
         step = message.payload["step"].as<int>();
     }
-    if (message.payload["lightingTime"].is<int>()) {
-        lightingTime = message.payload["lightingTime"].as<int>()*1000;
+    if (message.payload["lighting_time"].is<int>()) {
+        lightingTime = message.payload["lighting_time"].as<int>()*1000;
     }
 }
 

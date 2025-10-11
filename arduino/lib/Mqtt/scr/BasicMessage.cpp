@@ -22,7 +22,7 @@ Message getSettings(String mac){
   return Message(String(millis()), "get_settings", "request", mac, payload);
 }
 
-Message basicResonse(Message& message, bool accept) {
+Message basicResponse(Message& message, bool accept) {
   JsonDocument payload;
   if (accept) payload["status"] = "accepted";
   else payload["status"] = "rejected";

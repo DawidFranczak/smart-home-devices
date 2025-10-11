@@ -34,6 +34,7 @@ void Device::onMessage(Message message){
     }
 }
 void Device::checkSensor(){
+    static unsigned long last_time_readed_tag = 0;
     String uid = sensor.readUid();
     if (addTagFlag){
         if (millis() - addTagStart > addTagTimeout) {
@@ -50,6 +51,8 @@ void Device::checkSensor(){
         }
     }else{
         if (uid == "") return; 
+        if (millis() - last_time_readed_tag < 1000) return;
+        last_time_readed_tag = millis();
         mqtt.sendMessage(onReadRequest(mqtt.getMac(), uid));
     }
 }
@@ -87,12 +90,12 @@ void Device::checkOpto(){
 
 void Device::accessGrantedRequest(Message message){
     gate.accessGranted(openGateTimeout);
-    mqtt.sendMessage(basicResonse(message));
+    mqtt.sendMessage(basicResponse(message));
 }
 void Device::accessDeniedRequest(Message message){
     gate.accessDenied();
-    mqtt.sendMessage(basicResonse(message));
+    mqtt.sendMessage(basicResponse(message));
 }
 void Device::setSettingsResponse(Message message){
-    mqtt.sendMessage(basicResonse(message));
+    mqtt.sendMessage(basicResponse(message));
 }

@@ -10,7 +10,7 @@ Gate gate(GATE_PIN,BUZZER_PIN);
 Device device(mqtt, sensor, gate, OPTO_PIN);
 
 void setup() {
-  // Serial.begin(9600);
+  Serial.begin(9600);
   mqtt.begin();
   mqtt.onMessage([](Message message) {
     device.onMessage(message);

@@ -7,7 +7,7 @@ Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, 
 Lamp lamp(mqtt, LAMP_COUNT);
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   mqtt.begin();
   mqtt.onMessage([](Message message) {
     lamp.onMessage(message);
@@ -15,6 +15,7 @@ void setup() {
 }
 
 void loop() {
+  mqtt.loop();
   if (mqtt.isConnected()) {
     digitalWrite(LED_BUILTIN, HIGH); 
   } else {

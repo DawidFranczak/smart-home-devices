@@ -74,6 +74,24 @@ void Mqtt::begin(){
   }
 }
 
+void Mqtt::loop() {
+    static unsigned long lastWifiCheck = 0;
+    unsigned long now = millis();
+
+    if (now - lastWifiCheck >= 30000) {
+      lastWifiCheck = now;
+      if (WiFi.status() != WL_CONNECTED) {
+          Serial.println("wifi reconnect");
+          WiFi.disconnect();
+          WiFi.begin(ssid, password);
+      }
+      if (WiFi.status() == WL_CONNECTED && !client.connected()) {
+        client.connect();
+      }
+    }
+   
+}
+
 void Mqtt::sendToRouter(){
   while(pointer > 0){
     if (client.connected()) {

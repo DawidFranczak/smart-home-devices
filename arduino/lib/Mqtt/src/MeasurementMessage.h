@@ -7,4 +7,9 @@
 
 Message tempHumMeasurentRequest(String mac, float temperature, float humidity);
 
+Message onTemperatureAbove(String mac);
+Message onTemperatureBelow(String mac);
+Message onHumidityAbove(String mac);
+Message onHumidityBelow(String mac);
+
 #endif

@@ -7,5 +7,6 @@
 
 Message onClickRequest(String mac);
 Message onHoldRequest(String mac);
+Message onToggleRequest(String mac);
 
 #endif

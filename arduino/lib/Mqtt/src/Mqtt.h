@@ -28,7 +28,6 @@ class Mqtt {
     int pointer = 0; 
     Message* messageBuffer[BUFFER_SIZE];
     String willMessage;
-    void reconnect();
     void sendToRouter();
     void healthCheck();
 
@@ -45,6 +44,7 @@ class Mqtt {
     bool connected;
     bool isConnected();
     void begin();
+    void loop();
     void sendMessage(const Message message);
     void onMessage(std::function<void(Message&)> cb);
     String getMac();

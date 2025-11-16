@@ -9,6 +9,7 @@ Aquarium aquarium(R_PIN, G_PIN, B_PIN, FLUO_PIN, mqtt);
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  // Serial.begin(9600);
   mqtt.begin();
   mqtt.onMessage([](Message msg) {
     aquarium.onMessage(msg);
@@ -16,6 +17,7 @@ void setup() {
 }
 
 void loop() {
+  mqtt.loop();
   if (mqtt.isConnected()) {
     digitalWrite(LED_BUILTIN, HIGH); 
   } else {

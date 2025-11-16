@@ -18,6 +18,7 @@ void setup() {
 }
 
 void loop() {
+  mqtt.loop();
   tempHum.loop();
 }
 

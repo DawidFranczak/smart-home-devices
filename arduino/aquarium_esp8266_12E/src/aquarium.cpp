@@ -25,7 +25,6 @@ void Aquarium::onMessage(Message message){
 }
 
 void Aquarium::setSettings(Message message) {
-  Serial.println(message.toJson());
     if (message.payload["color_r"].is<int>()) {
         rValue = message.payload["color_r"].as<int>();
     }

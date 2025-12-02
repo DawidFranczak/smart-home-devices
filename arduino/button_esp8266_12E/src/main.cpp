@@ -1,19 +1,21 @@
 #include <Arduino.h>
 #include <Mqtt.h>
 #include <Button.h>
-#include "settings.h"
+#include <ConfigManager.h>
 
-Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, HEALT_CHECK_INTERVAL);
-Button button(BUTTON_PIN, mqtt);
+ConfigManager configManager("/config.json");
+Mqtt mqtt(configManager);
+Button button(configManager, mqtt);
 
 void setup() {
   Serial.begin(9600);
+  configManager.begin();
+  button.begin();
   mqtt.begin();
   mqtt.onMessage([](Message msg) {
-    if(msg.message_event == "get_settings" || msg.message_event == "set_settings"){
-      button.setSettings(msg);
-    }
+    button.onMessage(msg);
   });
+
 }
 
 void loop() {

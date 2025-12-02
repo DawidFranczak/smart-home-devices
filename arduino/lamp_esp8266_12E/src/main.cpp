@@ -10,6 +10,7 @@ void setup() {
   // Serial.begin(9600);
   mqtt.begin();
   mqtt.onMessage([](Message message) {
+    // Serial.println(message.toJson());
     lamp.onMessage(message);
   });
 }

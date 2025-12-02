@@ -1,18 +1,22 @@
 #include <Arduino.h>
-#include "Relay.h"
 #include <Mqtt.h>
+#include <BasicMessage.h>
+#include "Relay.h"
 
-Relay::Relay(int outputPin):outputPin(outputPin){
+Relay::Relay(int outputPin, Mqtt& mqtt):outputPin(outputPin), mqtt(mqtt){
     pinMode(outputPin,OUTPUT);
 };
 void Relay::on(){
     digitalWrite(outputPin,HIGH);
+    mqtt.sendMessage(deviceStateRequest(mqtt.getMac(),"on"));
 };
 void Relay::off(){
     digitalWrite(outputPin,LOW);
+    mqtt.sendMessage(deviceStateRequest(mqtt.getMac(),"off"));
 };
 void Relay::toggle(){
-     digitalWrite(outputPin,!digitalRead(outputPin));
+    if (digitalRead(outputPin)) off();
+    else on();
 };
 void Relay::onMessage(Message msg){
     if (msg.message_event == "off") {

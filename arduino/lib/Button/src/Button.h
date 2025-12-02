@@ -10,14 +10,16 @@ enum ButtonType {
 
 class Button {
 public:
-  Button(int inputPin, Mqtt& mqtt);
+  Button(ConfigManager& configManager, Mqtt& mqtt);
   void loop();
+  void begin();
   void onMessage(Message msg);
   ButtonType getButtonType();
 
 private:
-  int buttonPin;
+  ConfigManager& configManager;
   Mqtt& mqtt;
+  u_int8_t buttonPin;
   void setSettings(Message msg);
   void check_button_mono();
   void check_button_bi();

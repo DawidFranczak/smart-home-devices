@@ -3,9 +3,13 @@
 #include "ButtonMessage.h"
 #include "Button.h"
 
-Button::Button(int inputPin, Mqtt& mqtt)
-  : buttonPin(inputPin), mqtt(mqtt), buttonType() {
+Button::Button(ConfigManager& configManager, Mqtt& mqtt)
+  : configManager(configManager), mqtt(mqtt), buttonType() {}
+
+void Button::begin(){
+  buttonPin = configManager.get("device.buttonPin").as<u_int8_t>();
   pinMode(buttonPin, INPUT_PULLUP);
+  buttonType = configManager.get("device.buttonType").as<ButtonType>();
 }
 
 void Button::loop() {
@@ -64,9 +68,14 @@ void Button::onMessage(Message msg){
   }
 }
 void Button::setSettings(Message msg){
+  bool shouldSave = false;
   if (msg.payload["button_type"].is<const char*>()) {
      buttonType = parseButtonType(msg.payload["button_type"]);
+     configManager.set("device.buttonType",static_cast<int>(buttonType));
+     shouldSave = true;
   }
+
+  if (shouldSave) configManager.save();
 }
 ButtonType Button::getButtonType() {
   return buttonType;

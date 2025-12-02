@@ -6,7 +6,7 @@
 
 Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, HEALT_CHECK_INTERVAL);
 Button button(BUTTON_PIN, mqtt);
-Relay relay(OUTPUT_PIN, mqtt);
+Relay relay(OUTPUT_PIN);
 
 ButtonType buttonType;
 unsigned long lastCheck = 0;
@@ -27,6 +27,7 @@ void setup() {
 void loop() {
   mqtt.loop();
   button.loop();
+
   buttonType = button.getButtonType();
   lastCheck = millis();
   if (buttonType == 0){

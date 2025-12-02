@@ -8,5 +8,6 @@ Message connectRequest(String mac, String fun, int wifiStrength);
 Message healthCheckRequest(String mac, int wifiStrength);
 Message disconnectRequest(String mac);
 Message getSettings(String mac);
+Message deviceStateRequest(String mac, String state);
 Message basicResponse(Message& message, bool accept=true);
 #endif

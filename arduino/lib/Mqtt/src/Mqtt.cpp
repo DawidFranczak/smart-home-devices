@@ -3,70 +3,91 @@
 #include <BasicMessage.h>
 #include "Mqtt.h"
 
-Mqtt::Mqtt(const char* brokerIp,
-           int brokerPort,
-           const char* brokerName,
-           const char* ssid,
-           const char* password,
-           const char* deviceFunction,
-           unsigned long healthCheckInterval)
-  : brokerIp(brokerIp),
-    brokerPort(brokerPort),
-    brokerName(brokerName),
-    ssid(ssid),
-    password(password),
-    deviceFunction(deviceFunction),
-    healthCheckInterval(healthCheckInterval),
-    client()
-    {
-      mac = WiFi.macAddress();
-      client.setServer(brokerIp, brokerPort);
-      willMessage = disconnectRequest(mac).toJson();
-      client.setWill(brokerName, 1, true, willMessage.c_str());
-      client.setKeepAlive(5);
-
-      client.onConnect([this](bool sessionPresent) {
-        String topic = "device/" + this->mac + "/+";
-        client.subscribe(topic.c_str(), 1);
-        client.subscribe("device/broadcast/",1);
-        sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
-        Serial.println("MQTT OK");
-        connected = true;
-      });
-
-      client.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
-        client.connect();
-        connected = false;
-      });
-
-      client.onMessage([this](char* topic, char* payload,
-                          AsyncMqttClientMessageProperties properties,
-                          size_t len, size_t index, size_t total) {
-        String msgStr;
-        for (size_t i = 0; i < len; i++) msgStr += (char)payload[i];
-        Message msg = Message::fromJson(msgStr);
-        if (msg.message_event == "get_connected_devices"){
-          sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
-          return;
-        }else if (msg.message_event == "device_connect"){
-          sendMessage(getSettings(this->getMac()));
-          return;
-        }
-        if (messageHandler) messageHandler(msg);
-      });
-
-      healthTicker.attach(healthCheckInterval, [this](){
-        this->healthCheck();
-      });
-    }
+Mqtt::Mqtt(ConfigManager& configManager)
+  : client(),
+   configManager(configManager){}
 
 void Mqtt::begin(){
+  mac = WiFi.macAddress();
+  deviceFunction = configManager.get("device.function").as<const char*>();
+  
+  brokerIp = configManager.get("mqtt.brokerIp").as<const char*>();
+  brokerPort = configManager.get("mqtt.brokerPort").as<int>();
+  brokerName = configManager.get("mqtt.brokerName").as<const char*>();
+  healthCheckInterval = configManager.get("mqtt.healthCheckInterval").as<int>();
+
+  ssid = configManager.get("wifi.ssid").as<const char*>();
+  password = configManager.get("wifi.password").as<const char*>();
+  client.setServer(brokerIp, brokerPort);
+  willMessage = disconnectRequest(mac).toJson();
+  client.setWill(
+    brokerName,
+    2,
+    true,
+    willMessage.c_str()
+  );
+  client.setKeepAlive(5);
+
+  client.onConnect([this](bool sessionPresent) {
+    Serial.println("MQTT connected");
+    String topic = "device/" + this->mac + "/+";
+    client.subscribe(topic.c_str(), 1);
+    client.subscribe("device/broadcast/",1);
+    sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
+    Serial.println("MQTT OK");
+    connected = true;
+  });
+
+  client.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
+    client.connect();
+    connected = false;
+  });
+
+  client.onMessage([this](char* topic, char* payload,
+                      AsyncMqttClientMessageProperties properties,
+                      size_t len, size_t index, size_t total) {
+    String msgStr;
+    for (size_t i = 0; i < len; i++) msgStr += (char)payload[i];
+    Message msg = Message::fromJson(msgStr);
+    if (msg.message_event == "get_connected_devices"){
+      sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
+      return;
+    }else if (msg.message_event == "device_connect"){
+      sendMessage(getSettings(this->getMac()));
+      return;
+    }
+    // }else if (msg.message_event == "update_firmware") {
+    //   Serial.println("=== OTA UPDATE REQUEST RECEIVED ===");
+
+    //   String url = msg.url;
+
+    //   Serial.print("Pobieram firmware z: ");
+    //   Serial.println(url);
+
+    //   t_httpUpdate_return ret = ESPhttpUpdate.update(url);
+
+    //   if (ret == HTTP_UPDATE_OK) {
+    //     Serial.println("OTA OK – restart...");
+    //   } else {
+    //     Serial.printf("OTA ERROR: %s\n",
+    //                   ESPhttpUpdate.getLastErrorString().c_str());
+    //   }
+    //   return;
+    // }
+    if (messageHandler) messageHandler(msg);
+  });
+
+  healthTicker.attach(healthCheckInterval, [this](){
+    this->healthCheck();
+  });
+
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-    }
-    Serial.println("WiFi OK");
+  }
+
+  for(int i=0;i<10;i++){
+    delay(1);
+    if(WiFi.status() == WL_CONNECTED) break;
   }
 
   if (!client.connected()) {
@@ -77,11 +98,9 @@ void Mqtt::begin(){
 void Mqtt::loop() {
     static unsigned long lastWifiCheck = 0;
     unsigned long now = millis();
-
-    if (now - lastWifiCheck >= 30000) {
+    if (now - lastWifiCheck >= 10000) {
       lastWifiCheck = now;
       if (WiFi.status() != WL_CONNECTED) {
-          Serial.println("wifi reconnect");
           WiFi.disconnect();
           WiFi.begin(ssid, password);
       }

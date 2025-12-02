@@ -7,12 +7,10 @@ Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, 
 Button button(BUTTON_PIN, mqtt);
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   mqtt.begin();
   mqtt.onMessage([](Message msg) {
-    if(msg.message_event == "get_settings" || msg.message_event == "set_settings"){
-      button.setSettings(msg);
-    }
+    button.onMessage(msg);
   });
 }
 

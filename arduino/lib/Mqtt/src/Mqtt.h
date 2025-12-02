@@ -6,23 +6,25 @@
 #include <AsyncMqttClient.h>
 #include <Message.h>
 #include <Ticker.h>
+#include <ConfigManager.h>
 
 #define BUFFER_SIZE 10
 
 class Mqtt {
   private:
+    WiFiClient espClient;
+    AsyncMqttClient client;
+    Ticker healthTicker;
+    ConfigManager& configManager;
+
+    const char* deviceFunction;
     const char* brokerIp;
     int brokerPort;
     const char* brokerName;
     const char* ssid;
     const char* password;
-    const char* deviceFunction;
-    unsigned long healthCheckInterval;
-
-    WiFiClient espClient;
-    AsyncMqttClient client;
-    Ticker healthTicker;
-
+    
+    int healthCheckInterval;
     unsigned long lastHealthCheck = 0;
     std::function<void(Message&)> messageHandler;
     int pointer = 0; 
@@ -32,13 +34,7 @@ class Mqtt {
     void healthCheck();
 
   public:
-    Mqtt(const char* brokerIp,
-         int brokerPort,
-         const char* brokerName,
-         const char* ssid,
-         const char* password,
-         const char* deviceFunction,
-         unsigned long healthCheckInterval);
+    Mqtt(ConfigManager& configManager);
 
     String mac;
     bool connected;

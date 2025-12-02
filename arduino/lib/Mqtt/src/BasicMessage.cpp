@@ -22,6 +22,12 @@ Message getSettings(String mac){
   return Message(String(millis()), "get_settings", "request", mac, payload);
 }
 
+Message deviceStateRequest(String mac, String state){
+  JsonDocument payload;
+  payload["state"] = state;
+  return Message(String(millis()), "state_change", "request", mac, payload);
+}
+
 Message basicResponse(Message& message, bool accept) {
   JsonDocument payload;
   if (accept) payload["status"] = "accepted";

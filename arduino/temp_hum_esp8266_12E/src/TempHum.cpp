@@ -1,9 +1,8 @@
 #include "TempHum.h"
 
-TempHum::TempHum(Mqtt& mqttClient, SensorType sensorType, const unsigned long checkEventInterval)
+TempHum::TempHum(Mqtt& mqttClient, ConfigManager& configManager)
   : mqtt(mqttClient),
-    sensorType(sensorType),
-    checkEventInterval(checkEventInterval),
+    configManager(configManager),
     lastReadTime(0),
     lastCheckTime(0),
     tempAboveSent(false),
@@ -11,14 +10,16 @@ TempHum::TempHum(Mqtt& mqttClient, SensorType sensorType, const unsigned long ch
     humAboveSent(false),
     humBelowSent(false)
 {
+  sensorType = configManager.get("device.checkEventInterval").as<SensorType>(); 
+  checkEventInterval = configManager.get("device.checkEventInterval").as<unsigned long>(); 
+  waitingTime = configManager.get("device.waitingTime").as<unsigned long>();
+  temperatureHysteresis = configManager.get("device.temperatureHysteresis").as<float>();
+  humidityHysteresis = configManager.get("device.humidityHysteresis").as<float>();
+  triggerTempUp = configManager.get("device.triggerTempUp").as<float>();
+  triggerTempDown = configManager.get("device.triggerTempDown").as<float>();
+  triggerHumUp = configManager.get("device.triggerHumUp").as<float>();
+  triggerHumDown = configManager.get("device.triggerHumDown").as<float>();
 
-  settings.waiting_time = 10000;
-  settings.temperature_hysteresis = 1.0;
-  settings.humidity_hysteresis = 5.0;
-  settings.trigger_temp_up = 25.0;
-  settings.trigger_temp_down = 15.0;
-  settings.trigger_hum_up = 70.0;
-  settings.trigger_hum_down = 30.0;
 }
 
 void TempHum::begin() {
@@ -36,14 +37,14 @@ void TempHum::onMessage(Message msg) {
 
   if (msg.message_event == "on_measurement_temp_hum") {
     if (msg.payload["waiting_time"].is<unsigned long>()) {
-      settings.waiting_time = msg.payload["waiting_time"].as<unsigned long>()*1000;
+      waitingTime = msg.payload["waiting_time"].as<unsigned long>()*1000;
     }
   }
 }
 
 void TempHum::loop() {
 
-  if (millis() - lastReadTime > settings.waiting_time) {
+  if (millis() - lastReadTime > waitingTime) {
     lastReadTime = millis();
      if (sensorType == SENSOR_AHT){
       sensors_event_t humidity, temp;
@@ -74,37 +75,37 @@ void TempHum::sendAggregateData(float temp, float hum) {
 
 void TempHum::checkTemperatureEvents(float temp) {
   String mac = mqtt.getMac();
-  if (!tempAboveSent && temp >= settings.trigger_temp_up) {
+  if (!tempAboveSent && temp >= triggerTempUp) {
     mqtt.sendMessage(onTemperatureAbove(mac));
     tempAboveSent = true;
   }
-  if (tempAboveSent && temp < (settings.trigger_temp_up - settings.temperature_hysteresis)) {
+  if (tempAboveSent && temp < (triggerTempUp - temperatureHysteresis)) {
     tempAboveSent = false;
   }
-  if (!tempBelowSent && temp <= settings.trigger_temp_down) {
+  if (!tempBelowSent && temp <= triggerTempDown) {
     mqtt.sendMessage(onTemperatureBelow(mac));
     tempBelowSent = true;
   }
-  if (tempBelowSent && temp > (settings.trigger_temp_down + settings.temperature_hysteresis)) {
+  if (tempBelowSent && temp > (triggerTempDown + temperatureHysteresis)) {
     tempBelowSent = false;
   }
 }
 
 void TempHum::checkHumidityEvents(float hum){
   String mac = mqtt.getMac();
-  if (!humAboveSent && hum >= settings.trigger_hum_up) {
+  if (!humAboveSent && hum >= triggerHumUp) {
     mqtt.sendMessage(onHumidityAbove(mac));
     humAboveSent = true;
   }
-  if (humAboveSent && hum < (settings.trigger_hum_up - settings.humidity_hysteresis)) {
+  if (humAboveSent && hum < (triggerHumUp - humidityHysteresis)) {
     humAboveSent = false;
   }
 
-  if (!humBelowSent && hum <= settings.trigger_hum_down) {
+  if (!humBelowSent && hum <= triggerHumDown) {
     mqtt.sendMessage(onHumidityBelow(mac));
     humBelowSent = true;
   }
-  if (humBelowSent && hum > (settings.trigger_hum_down + settings.humidity_hysteresis)) {
+  if (humBelowSent && hum > (triggerHumDown + humidityHysteresis)) {
     humBelowSent = false;
   }
 }
@@ -112,11 +113,33 @@ void TempHum::checkHumidityEvents(float hum){
 void TempHum::updateSettings(Message msg) {
   auto payload = msg.payload;
 
-  if (payload["waiting_time"].is<int>()) settings.waiting_time = payload["waiting_time"].as<int>();
-  if (payload["temperature_hysteresis"].is<float>()) settings.temperature_hysteresis = payload["temperature_hysteresis"].as<float>();
-  if (payload["humidity_hysteresis"].is<float>()) settings.humidity_hysteresis = payload["humidity_hysteresis"].as<float>();
-  if (payload["trigger_temp_up"].is<float>()) settings.trigger_temp_up = payload["trigger_temp_up"].as<float>();
-  if (payload["trigger_temp_down"].is<float>()) settings.trigger_temp_down = payload["trigger_temp_down"].as<float>();
-  if (payload["trigger_hum_up"].is<float>()) settings.trigger_hum_up = payload["trigger_hum_up"].as<float>();
-  if (payload["trigger_hum_down"].is<float>()) settings.trigger_hum_down = payload["trigger_hum_down"].as<float>();
+  if (payload["waiting_time"].is<int>()) waitingTime = payload["waiting_time"].as<int>();
+  if (payload["temperature_hysteresis"].is<float>()){
+     temperatureHysteresis = payload["temperature_hysteresis"].as<float>();
+     configManager.set("device.temperatureHysteresis",temperatureHysteresis);
+  }
+  if (payload["humidity_hysteresis"].is<float>()) {
+      humidityHysteresis = payload["humidity_hysteresis"].as<float>();
+      configManager.set("device.humidityHysteresis", humidityHysteresis);
+  }
+
+  if (payload["trigger_temp_up"].is<float>()) {
+      triggerTempUp = payload["trigger_temp_up"].as<float>();
+      configManager.set("device.triggerTempUp", triggerTempUp);
+  }
+
+  if (payload["trigger_temp_down"].is<float>()) {
+      triggerTempDown = payload["trigger_temp_down"].as<float>();
+      configManager.set("device.triggerTempDown", triggerTempDown);
+  }
+
+  if (payload["trigger_hum_up"].is<float>()) {
+      triggerHumUp = payload["trigger_hum_up"].as<float>();
+      configManager.set("device.triggerHumUp", triggerHumUp);
+  }
+
+  if (payload["trigger_hum_down"].is<float>()) {
+      triggerHumDown = payload["trigger_hum_down"].as<float>();
+      configManager.set("device.triggerHumDown", triggerHumDown);
+  }
 }

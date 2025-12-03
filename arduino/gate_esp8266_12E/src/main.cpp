@@ -1,16 +1,18 @@
 #include <Arduino.h>
+#include <ConfigManager.h>
 #include "sensor.h"
 #include "gate.h"
 #include "device.h"
-#include "settings.h"
 
-Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, HEALT_CHECK_INTERVAL);
-Sensor sensor(SS_PIN, RST_PIN);
-Gate gate(GATE_PIN,BUZZER_PIN);
-Device device(mqtt, sensor, gate, OPTO_PIN);
+ConfigManager configManager("/config.json");
+Mqtt mqtt(configManager);
+Sensor sensor(configManager);
+Gate gate(configManager);
+Device device(mqtt, sensor, gate, configManager);
 
 void setup() {
   Serial.begin(9600);
+  configManager.begin();
   mqtt.begin();
   mqtt.onMessage([](Message message) {
     device.onMessage(message);

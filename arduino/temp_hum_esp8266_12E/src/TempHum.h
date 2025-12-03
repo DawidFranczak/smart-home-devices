@@ -5,22 +5,12 @@
 #include <MeasurementMessage.h>
 
 enum SensorType {
-  SENSOR_AHT,
-};
-
-struct DeviceSettings {
-  unsigned long waiting_time;
-  float temperature_hysteresis;
-  float humidity_hysteresis;
-  float trigger_temp_up;
-  float trigger_temp_down;
-  float trigger_hum_up;
-  float trigger_hum_down;
+  SENSOR_AHT=0,
 };
 
 class TempHum {
 public:
-  TempHum(Mqtt& mqttClient, SensorType sensorType, const unsigned long checkEventInterval);
+  TempHum(Mqtt& mqttClient, ConfigManager& configManager);
 
   void begin();
   void onMessage(Message msg);  
@@ -28,8 +18,9 @@ public:
 
 private:
   Mqtt& mqtt;
+  ConfigManager& configManager;
   SensorType sensorType;
-  const unsigned long checkEventInterval;
+  unsigned long checkEventInterval;
   unsigned long lastReadTime;
   unsigned long lastCheckTime;
   bool tempAboveSent;
@@ -37,7 +28,13 @@ private:
   bool humAboveSent;
   bool humBelowSent;
   Adafruit_AHTX0 aht;
-  DeviceSettings settings;
+  unsigned long waitingTime;
+  float temperatureHysteresis;
+  float humidityHysteresis;
+  float triggerTempUp;
+  float triggerTempDown;
+  float triggerHumUp;
+  float triggerHumDown;
 
   void sendAggregateData(float temp,float hum);
   void updateSettings(Message msg);

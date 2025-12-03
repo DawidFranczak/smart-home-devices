@@ -3,7 +3,8 @@
 #include <BasicMessage.h>
 #include "Relay.h"
 
-Relay::Relay(int outputPin, Mqtt& mqtt):outputPin(outputPin), mqtt(mqtt){
+Relay::Relay(ConfigManager& configManager, Mqtt& mqtt):configManager(configManager), mqtt(mqtt){
+    outputPin = configManager.get("device.outputPin").as<int>();
     pinMode(outputPin,OUTPUT);
 };
 void Relay::on(){

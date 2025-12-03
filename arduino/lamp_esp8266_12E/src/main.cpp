@@ -1,13 +1,14 @@
 #include <Arduino.h>
 #include <Mqtt.h>
-#include "settings.h"
 #include "lamp.h"
 
-Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, HEALT_CHECK_INTERVAL);
-Lamp lamp(mqtt, LAMP_COUNT);
+ConfigManager configManager("/config.json");
+Mqtt mqtt(configManager);
+Lamp lamp(mqtt, configManager);
 
 void setup() {
   // Serial.begin(9600);
+  configManager.begin();
   mqtt.begin();
   mqtt.onMessage([](Message message) {
     // Serial.println(message.toJson());

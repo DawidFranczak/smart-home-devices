@@ -1,0 +1,25 @@
+{
+  "wifi": {
+    "ssid": "Tenda",
+    "password": "1RKKHAPIEJ"
+  },
+  "mqtt": {
+    "brokerIp": "192.168.1.157",
+    "brokerPort": 1883,
+    "brokerName": "hub",
+    "healthCheckInterval": 600
+  },
+  "device": {
+    "firmwareVersion": 1.0,
+    "function": "temp_hum",
+    "sensorType": 0,
+    "waitingTime":3600000,
+    "checkEventInterval": 10000,
+    "temperatureHysteresis": 1.0,
+    "humidityHysteresis": 5.0,
+    "triggerTempUp": 25.0,
+    "triggerTempDown": 15.0,
+    "triggerHumUp": 70.0,
+    "triggerHumDown": 30.0
+  } 
+}

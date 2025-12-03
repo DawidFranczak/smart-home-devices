@@ -8,7 +8,7 @@ Mqtt mqtt(configManager);
 Button button(configManager, mqtt);
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   configManager.begin();
   button.begin();
   mqtt.begin();

@@ -11,8 +11,8 @@
   },
   "device": {
     "firmwareVersion":1.0,
-    "function": "button",
-    "buttonPin": 2,
-    "buttonType":0
+    "function": "light",
+    "outputPin" : 0,
+    "buttonPin" : 2
   }
 }

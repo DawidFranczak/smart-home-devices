@@ -9,5 +9,6 @@ Message healthCheckRequest(String mac, int wifiStrength);
 Message disconnectRequest(String mac);
 Message getSettings(String mac);
 Message deviceStateRequest(String mac, String state);
+Message firmwareUpdateErrorRequest(String mac, String error);
 Message basicResponse(Message& message, bool accept=true);
 #endif

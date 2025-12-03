@@ -1,13 +1,15 @@
 #include <Arduino.h>
 #include "gate.h"
 
-Gate::Gate(int gatePin, int buzzerPin) :
- gatePin(gatePin), buzzerPin(buzzerPin) {
+Gate::Gate(ConfigManager& configManager) :
+ configManager(configManager){
+    gatePin = configManager.get("device.gatePin").as<int>();
+    buzzerPin = configManager.get("device.buzzerPin").as<int>();
+    openGateTime = configManager.get("device.openGateTimeout").as<int>();;
     pinMode(gatePin, OUTPUT);
     pinMode(buzzerPin, OUTPUT);
     accessGrantedFlag = false;
     accessDeniedFlag = false;
-    openGateTime = 10000;
     lastAccessGrantedTime = 0;
     lastAccessDeniedTime = 0;
     accessDeniedCounter = 0;

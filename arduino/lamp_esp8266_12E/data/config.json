@@ -11,8 +11,10 @@
   },
   "device": {
     "firmwareVersion":1.0,
-    "function": "button",
-    "buttonPin": 2,
-    "buttonType":0
+    "function": "lamp",
+    "lampCount": 8,
+    "brightness":4095,
+    "step":20,
+    "lightingTime":10000
   }
 }

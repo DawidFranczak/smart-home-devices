@@ -1,15 +1,16 @@
 #include <Arduino.h>
 #include <Mqtt.h>
+#include <ConfigManager.h>
 #include "aquarium.h"
-#include "settings.h"
 
-Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, HEALT_CHECK_INTERVAL);
-
-Aquarium aquarium(R_PIN, G_PIN, B_PIN, FLUO_PIN, mqtt);
+ConfigManager configManager("/config.json");
+Mqtt mqtt(configManager);
+Aquarium aquarium(configManager, mqtt);
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   // Serial.begin(9600);
+  configManager.begin();
   mqtt.begin();
   mqtt.onMessage([](Message msg) {
     aquarium.onMessage(msg);

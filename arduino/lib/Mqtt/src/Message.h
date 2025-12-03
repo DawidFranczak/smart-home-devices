@@ -14,7 +14,7 @@ struct Message {
     JsonDocument payload;
 
     Message(String id, String event, String type, String dev_id, JsonDocument pl, int qos = 0, bool retain = false)
-        : message_id(id), message_event(event), message_type(type), device_id(dev_id), qos(qos), retain(retain), payload(pl) {}
+        : message_id(id), message_event(event), message_type(type), device_id(dev_id), qos(0), retain(false), payload(pl) {}
 
     String toJson() {
         JsonDocument doc;

@@ -5,12 +5,14 @@
 #include "ArduinoJson.h"
 #include "BasicMessage.h"
 
-Lamp::Lamp(Mqtt& mqtt, int lampCount) : mqtt(mqtt),lampCount(lampCount) {
+Lamp::Lamp(Mqtt& mqtt, ConfigManager& configManager) : mqtt(mqtt),configManager(configManager) {
+    lampCount = configManager.get("device.lampCount").as<int>();
+    brightness = configManager.get("device.brightness").as<int>();;
+    step = configManager.get("device.step").as<int>();;
+    lightingTime = configManager.get("device.lightingTime").as<int>();;
+
     isPending = false;
     lampOn = false;
-    brightness = 4095;
-    step = 20;
-    lightingTime = 10000;
     reverse = false;
     state = IDLE;
     currentLampIndex = 0;
@@ -33,22 +35,22 @@ void Lamp::onMessage(Message message) {
     }
     if (message.message_event == "get_settings") {
         setSettings(message);
-        mqtt.sendMessage(basicResponse(message));
+        mqtt.sendMessage(basicResponse(message,true));
     } else if (message.message_event == "set_settings") {
         setSettings(message);
-        mqtt.sendMessage(basicResponse(message));
+        mqtt.sendMessage(basicResponse(message,true));
     } else if (message.message_event == "off") {
         turnOffLampRequest();
-        mqtt.sendMessage(basicResponse(message));
+        mqtt.sendMessage(basicResponse(message,true));
     } else if (message.message_event == "on") {
         turnOnLampRequest();
-        mqtt.sendMessage(basicResponse(message));
+        mqtt.sendMessage(basicResponse(message,true));
     } else if (message.message_event == "blink") {
         blinkLampRequest();
-        mqtt.sendMessage(basicResponse(message));
+        mqtt.sendMessage(basicResponse(message,true));
     } else if (message.message_event == "toggle") {
         toggleLampRequest();
-        mqtt.sendMessage(basicResponse(message));
+        mqtt.sendMessage(basicResponse(message,true));
     }
 }
 
@@ -123,13 +125,17 @@ void Lamp::toggleLampRequest() {
 void Lamp::setSettings(Message message) {
     if (message.payload["brightness"].is<int>()) {
         brightness = message.payload["brightness"].as<int>() * 40.95;
+        configManager.set("device.brightness",brightness);
     }
     if (message.payload["step"].is<int>()) {
         step = message.payload["step"].as<int>();
+        configManager.set("device.step",step);
     }
     if (message.payload["lighting_time"].is<int>()) {
         lightingTime = message.payload["lighting_time"].as<int>()*1000;
+        configManager.set("device.lightingTime",lightingTime);
     }
+    configManager.save();
 }
 
 bool Lamp::_turnOn(){

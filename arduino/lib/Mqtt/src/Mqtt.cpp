@@ -98,8 +98,8 @@ void Mqtt::loop() {
       } else {
         configManager.set("device.firmwareVersion",firmwareVersion);
         configManager.save();
-        Serial.printf("OTA ERROR: %s\n",
-                      ESPhttpUpdate.getLastErrorString().c_str());
+        sendMessage(firmwareUpdateErrorRequest(getMac(),ESPhttpUpdate.getLastErrorString().c_str()));
+        Serial.printf("OTA ERROR: %s\n",ESPhttpUpdate.getLastErrorString().c_str());
       }
     }
 

@@ -1,15 +1,17 @@
 #include <Mqtt.h>
+#include <ConfigManager.h>
 #include "sensor.h"
 #include "gate.h"
 class Device{
     public:
-        Device(Mqtt& mqtt, Sensor& sensor, Gate& gate, int optoPin);
+        Device(Mqtt& mqtt, Sensor& sensor, Gate& gate, ConfigManager& configManager);
         void loop();
         void onMessage(Message message);
     private:
         Mqtt& mqtt;
         Sensor& sensor;
         Gate& gate;
+        ConfigManager& configManager;
         std::optional<Message> addTagMessage;
         int optoPin;
         int openGateTimeout;

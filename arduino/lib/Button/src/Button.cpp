@@ -62,6 +62,7 @@ ButtonType Button::parseButtonType(const String& typeStr) {
     return MONO;
   }
 }
+
 void Button::onMessage(Message msg){
   if(msg.message_event == "get_settings" || msg.message_event == "set_settings"){
     setSettings(msg);

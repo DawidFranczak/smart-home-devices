@@ -6,14 +6,15 @@
 #include "ButtonMessage.h"
 
 
-Device::Device(Mqtt& mqtt, Sensor& sensor, Gate& gate, int optoPin):
+Device::Device(Mqtt& mqtt, Sensor& sensor, Gate& gate, ConfigManager& configManager):
     mqtt(mqtt),
     sensor(sensor),
     gate(gate),
-    optoPin(optoPin){
+    configManager(configManager){
+    optoPin = configManager.get("device.optoPin").as<int>();
+    openGateTimeout = configManager.get("device.openGateTimeout").as<int>();
+    addTagTimeout = configManager.get("device.addTagTimeout").as<int>();
     pinMode(optoPin, INPUT_PULLUP);
-    openGateTimeout = 10000;
-    addTagTimeout = 10000;
     addTagStart = 0;
 }
 void Device::loop(){

@@ -6,7 +6,7 @@
 
 class Aquarium {
 public:
-  Aquarium(int rPin, int gPin, int bPin, int fluoPin, Mqtt& mqtt);
+  Aquarium(ConfigManager& configManager, Mqtt& mqtt);
   void onMessage(Message message);
 
 private:
@@ -20,6 +20,7 @@ private:
     bool fluoValue;
     bool ledValue;
     Mqtt& mqtt;
+    ConfigManager& configManager;
 
     void setSettings(Message message);
     void updateLed();

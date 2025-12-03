@@ -13,11 +13,12 @@ enum LampState {
 
 class Lamp{
     public:
-        Lamp(Mqtt& mqtt, int lampCount);
+        Lamp(Mqtt& mqtt, ConfigManager& configManager);
         void loop();
         void onMessage(Message message);
 
     private:
+
         int lampCount;
         int currentLampIndex;
         bool isPending;
@@ -33,6 +34,7 @@ class Lamp{
         unsigned long blinkStartTime;
 
         Mqtt& mqtt;
+        ConfigManager& configManager;
         Adafruit_PWMServoDriver pwm;
         void updateLamp();
         void turnOnLampRequest();

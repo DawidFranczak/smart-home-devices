@@ -11,8 +11,14 @@
   },
   "device": {
     "firmwareVersion":1.0,
-    "function": "button",
-    "buttonPin": 2,
-    "buttonType":0
+    "function": "rfid",
+    "ssPin": 16,
+    "rstPin": 15,
+    "gatePin": 4,
+    "buzzerPin": 5, 
+    "optoPin": 0,
+    "openGateTimeout":10000,
+    "addTagTimeout":10000
+    
   }
 }

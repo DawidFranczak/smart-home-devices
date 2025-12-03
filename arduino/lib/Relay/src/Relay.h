@@ -2,12 +2,13 @@
 
 class Relay{
     public:
-        Relay(int outputPin, Mqtt& mqtt);
+        Relay(ConfigManager& configManager, Mqtt& mqtt);
         void on();
         void off();
         void toggle();
         void onMessage(Message msg);
     private:
         int outputPin;
+        ConfigManager& configManager;
         Mqtt& mqtt;
 };

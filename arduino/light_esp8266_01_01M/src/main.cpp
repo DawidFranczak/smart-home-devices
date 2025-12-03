@@ -2,26 +2,29 @@
 #include <Mqtt.h>
 #include <Button.h>
 #include <Relay.h>
-#include "settings.h"
 
-Mqtt mqtt(BROKER_IP, BROKER_PORT, BROKER_NAME, SSID, PASSWORD, DEVICE_FUNCTION, HEALT_CHECK_INTERVAL);
-Button button(BUTTON_PIN, mqtt);
-Relay relay(OUTPUT_PIN);
+ConfigManager configManager("/config.json");
+Mqtt mqtt(configManager);
+Button button(configManager, mqtt);
+Relay relay(configManager, mqtt);
 
 ButtonType buttonType;
 unsigned long lastCheck = 0;
+int BUTTON_PIN;
 
 void check_button_mono();
 void check_button_bi();
 
 void setup() {
   Serial.begin(9600);
+  configManager.begin();
   mqtt.begin();
   mqtt.onMessage([](Message msg) {
     Serial.println(msg.toJson());
     button.onMessage(msg);
     relay.onMessage(msg);
   });
+  BUTTON_PIN = configManager.get("device.buttonPin").as<int>();
 }
 
 void loop() {

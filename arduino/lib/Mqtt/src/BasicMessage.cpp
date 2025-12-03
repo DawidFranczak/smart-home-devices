@@ -29,6 +29,12 @@ Message deviceStateRequest(String mac, String state){
   return Message(String(millis()), "state_change", "request", mac, payload);
 }
 
+Message firmwareUpdateErrorRequest(String mac, String error){
+  JsonDocument payload;
+  payload["message"] = error;
+  return Message(String(millis()), "update_firmware_error", "request", mac, payload);
+}
+
 Message basicResponse(Message& message, bool accept) {
   JsonDocument payload;
   if (accept) payload["status"] = "accepted";

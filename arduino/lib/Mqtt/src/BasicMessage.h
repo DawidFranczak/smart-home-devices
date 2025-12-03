@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 #include "Message.h"
 
-Message connectRequest(String mac, String fun, int wifiStrength);
+Message connectRequest(String mac, String fun, int wifiStrength, float firmwareVersion);
 Message healthCheckRequest(String mac, int wifiStrength);
 Message disconnectRequest(String mac);
 Message getSettings(String mac);

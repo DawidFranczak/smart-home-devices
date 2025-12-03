@@ -23,6 +23,10 @@ class Mqtt {
     const char* brokerName;
     const char* ssid;
     const char* password;
+    float firmwareVersion;
+
+    bool otaActive;
+    const char* otaUrl;
     
     int healthCheckInterval;
     unsigned long lastHealthCheck = 0;

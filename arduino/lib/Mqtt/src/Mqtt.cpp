@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266httpUpdate.h>
 #include <BasicMessage.h>
 #include "Mqtt.h"
 
@@ -9,7 +10,9 @@ Mqtt::Mqtt(ConfigManager& configManager)
 
 void Mqtt::begin(){
   mac = WiFi.macAddress();
+  otaActive = false;
   deviceFunction = configManager.get("device.function").as<const char*>();
+  firmwareVersion = configManager.get("device.firmwareVersion").as<float>();
   
   brokerIp = configManager.get("mqtt.brokerIp").as<const char*>();
   brokerPort = configManager.get("mqtt.brokerPort").as<int>();
@@ -33,7 +36,7 @@ void Mqtt::begin(){
     String topic = "device/" + this->mac + "/+";
     client.subscribe(topic.c_str(), 1);
     client.subscribe("device/broadcast/",1);
-    sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
+    sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI(), this->firmwareVersion));
     Serial.println("MQTT OK");
     connected = true;
   });
@@ -50,30 +53,20 @@ void Mqtt::begin(){
     for (size_t i = 0; i < len; i++) msgStr += (char)payload[i];
     Message msg = Message::fromJson(msgStr);
     if (msg.message_event == "get_connected_devices"){
-      sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI()));
+      sendMessage(connectRequest(this->mac, this->deviceFunction, WiFi.RSSI(),this->firmwareVersion));
       return;
     }else if (msg.message_event == "device_connect"){
       sendMessage(getSettings(this->getMac()));
       return;
-    }
-    // }else if (msg.message_event == "update_firmware") {
-    //   Serial.println("=== OTA UPDATE REQUEST RECEIVED ===");
-
-    //   String url = msg.url;
-
-    //   Serial.print("Pobieram firmware z: ");
-    //   Serial.println(url);
-
-    //   t_httpUpdate_return ret = ESPhttpUpdate.update(url);
-
-    //   if (ret == HTTP_UPDATE_OK) {
-    //     Serial.println("OTA OK – restart...");
-    //   } else {
-    //     Serial.printf("OTA ERROR: %s\n",
-    //                   ESPhttpUpdate.getLastErrorString().c_str());
-    //   }
-    //   return;
-    // }
+    }else if (msg.message_event == "update_firmware") {
+      if (msg.payload["url"].is<const char*>() && msg.payload["version"].is<float>()) {
+          otaUrl = msg.payload["url"];
+          otaActive = true;
+          configManager.set("device.firmwareVersion",msg.payload["version"]);
+          configManager.save();
+      }
+      return;
+  }
     if (messageHandler) messageHandler(msg);
   });
 
@@ -96,6 +89,20 @@ void Mqtt::begin(){
 }
 
 void Mqtt::loop() {
+    if (otaActive){
+      otaActive = false;
+      WiFiClient otaClient;
+      t_httpUpdate_return ret = ESPhttpUpdate.update(otaClient, otaUrl);
+      if (ret == HTTP_UPDATE_OK) {
+        Serial.println("OTA OK – restart...");
+      } else {
+        configManager.set("device.firmwareVersion",firmwareVersion);
+        configManager.save();
+        Serial.printf("OTA ERROR: %s\n",
+                      ESPhttpUpdate.getLastErrorString().c_str());
+      }
+    }
+
     static unsigned long lastWifiCheck = 0;
     unsigned long now = millis();
     if (now - lastWifiCheck >= 10000) {

@@ -1,9 +1,10 @@
 #include "BasicMessage.h"
 
-Message connectRequest(String mac, String fun, int wifiStrength){
+Message connectRequest(String mac, String fun, int wifiStrength, float firmware_version){
   JsonDocument payload;
   payload["wifi_strength"] = wifiStrength;
   payload["fun"] = fun;
+  payload["firmware_version"] = firmware_version;
   return Message(String(millis()), "device_connect", "request", mac, payload, 1, true);
 }
 

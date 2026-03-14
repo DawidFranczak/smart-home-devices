@@ -4,7 +4,7 @@
     "password": "1RKKHAPIEJ"
   },
   "mqtt": {
-    "brokerIp": "192.168.1.106",
+    "brokerIp": "192.168.1.118",
     "brokerPort": 1883,
     "brokerName": "hub",
     "healthCheckInterval": 600
@@ -13,7 +13,10 @@
     "firmwareVersion":1.0,
     "chipType":"ESP8266"
   },
-  "peripheral":{
+  "peripherals":{
     
+  },
+  "rules":{
+
   }
 }

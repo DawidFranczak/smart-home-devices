@@ -13,7 +13,7 @@ ConfigManager stateManager("/state.json");
 ESP8266PeripheralFactory factory;
 PeripheralManager peripheralManager;
 Mqtt mqtt(configManager);
-EventEngine eventEngine(peripheralManager, mqtt);
+EventEngine eventEngine(peripheralManager, mqtt, configManager);
 Cpu cpu(eventEngine, peripheralManager, configManager, stateManager, &factory);
 
 void setup() {
@@ -22,10 +22,13 @@ void setup() {
   stateManager.begin();
   mqtt.begin();
   mqtt.onMessage([](Message msg) {
+    Serial.println(msg.toJson());
     cpu.onMessage(msg);
   });
   cpu.begin();
   peripheralManager.begin();
+  eventEngine.begin();
+  Serial.printf("Free RAM: %d\n", ESP.getFreeHeap());
 }
 
 void loop() {

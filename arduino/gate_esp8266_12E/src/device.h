@@ -5,6 +5,7 @@
 class Device{
     public:
         Device(Mqtt& mqtt, Sensor& sensor, Gate& gate, ConfigManager& configManager);
+        void begin();
         void loop();
         void onMessage(Message message);
     private:

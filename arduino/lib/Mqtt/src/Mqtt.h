@@ -2,41 +2,48 @@
 #define MQTT_H
 
 #include <Arduino.h>
-#include <ESP8266WiFi.h>
-#include <AsyncMqttClient.h>
+#include <PubSubClient.h>
 #include <Message.h>
 #include <Ticker.h>
 #include <ConfigManager.h>
+#include <Types.h>
 
+#if defined(ESP32)
+  #include <WiFi.h>
+#elif defined(ESP8266)
+  #include <ESP8266WiFi.h>
+#endif
 #define BUFFER_SIZE 10
+
+
 
 class Mqtt {
   private:
     WiFiClient espClient;
-    AsyncMqttClient client;
-    Ticker healthTicker;
+    PubSubClient client;
     ConfigManager& configManager;
-
+    
     const char* deviceFunction;
-    const char* brokerIp;
+    String brokerIp;
     int brokerPort;
     const char* brokerName;
     const char* ssid;
     const char* password;
     float firmwareVersion;
-
+    const char* chipType;
+    
     bool otaActive;
     const char* otaUrl;
-    
     int healthCheckInterval;
     unsigned long lastHealthCheck = 0;
+    bool sending = false;
     std::function<void(Message&)> messageHandler;
     int pointer = 0; 
-    Message* messageBuffer[BUFFER_SIZE];
+    QueuedMessage messageBuffer[BUFFER_SIZE];
     String willMessage;
     void sendToRouter();
     void healthCheck();
-
+    void reconnect();
   public:
     Mqtt(ConfigManager& configManager);
 
@@ -45,7 +52,7 @@ class Mqtt {
     bool isConnected();
     void begin();
     void loop();
-    void sendMessage(const Message message);
+    void sendMessage(const QueuedMessage& msg);
     void onMessage(std::function<void(Message&)> cb);
     String getMac();
 };

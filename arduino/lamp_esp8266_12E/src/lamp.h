@@ -14,6 +14,7 @@ enum LampState {
 class Lamp{
     public:
         Lamp(Mqtt& mqtt, ConfigManager& configManager);
+        void begin();
         void loop();
         void onMessage(Message message);
 

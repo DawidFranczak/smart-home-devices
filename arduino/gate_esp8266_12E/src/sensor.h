@@ -8,6 +8,7 @@ class Sensor{
     public:
         Sensor(ConfigManager& configManager);
         void loop();
+        void begin();
         String readUid();
 
     private:

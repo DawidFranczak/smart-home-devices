@@ -11,11 +11,14 @@ Device::Device(Mqtt& mqtt, Sensor& sensor, Gate& gate, ConfigManager& configMana
     sensor(sensor),
     gate(gate),
     configManager(configManager){
+    addTagStart = 0;
+}
+
+void Device::begin(){
     optoPin = configManager.get("device.optoPin").as<int>();
     openGateTimeout = configManager.get("device.openGateTimeout").as<int>();
     addTagTimeout = configManager.get("device.addTagTimeout").as<int>();
     pinMode(optoPin, INPUT_PULLUP);
-    addTagStart = 0;
 }
 void Device::loop(){
     checkSensor();

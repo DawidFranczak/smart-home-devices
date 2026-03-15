@@ -4,11 +4,12 @@
 #include <ArduinoJson.h>
 #include "Message.h"
 
-Message connectRequest(String mac, String fun, int wifiStrength, float firmwareVersion);
-Message healthCheckRequest(String mac, int wifiStrength);
-Message disconnectRequest(String mac);
-Message getSettings(String mac);
-Message deviceStateRequest(String mac, String state);
-Message firmwareUpdateErrorRequest(String mac, String error);
-Message basicResponse(Message& message, bool accept=true);
+Message connectEvent(String mac, String fun, int wifiStrength, float firmwareVersion);
+Message disconnectEvent(String mac);
+Message healthCheckEvent(String mac, int wifiStrength);
+// Message getSettings(String mac);
+// Message deviceStateEvent(String mac, String state);
+Message firmwareUpdateErrorEvent(String mac, String error);
+Message basicCPUResult(Message& message, bool accept=true);
+Message basicPeripheralResult(Message& message, int peripheralId, bool accept=true);
 #endif

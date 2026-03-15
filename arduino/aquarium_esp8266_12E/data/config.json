@@ -11,14 +11,15 @@
   },
   "device": {
     "firmwareVersion":1.0,
-    "function": "rfid",
-    "ssPin": 16,
-    "rstPin": 15,
-    "gatePin": 4,
-    "buzzerPin": 5, 
-    "optoPin": 0,
-    "openGateTimeout":10000,
-    "addTagTimeout":10000
-    
+    "function": "aquarium",
+    "rPin": 14,  
+    "gPin": 12, 
+    "bPin": 13, 
+    "fluoPin": 0,
+    "rValue": 0,
+    "gValue": 0,
+    "bValue": 0,
+    "ledValue":false,
+    "fluoValue":false
   }
 }

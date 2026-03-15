@@ -3,7 +3,9 @@
 #include "aquarium.h"
 
 Aquarium::Aquarium(ConfigManager& configManager, Mqtt& mqtt)
-  : configManager(configManager), mqtt(mqtt){
+  : configManager(configManager), mqtt(mqtt){}
+
+void Aquarium::begin(){
   rPin = configManager.get("device.rPin").as<int>();
   gPin = configManager.get("device.gPin").as<int>();
   bPin = configManager.get("device.bPin").as<int>();
@@ -36,11 +38,11 @@ void Aquarium::setSettings(Message message) {
     }
     if (message.payload["color_g"].is<int>()) {
         gValue = message.payload["color_g"].as<int>();
-        configManager.set("device.gValue",rValue);
+        configManager.set("device.gValue",gValue);
     }
     if (message.payload["color_b"].is<int>()) {
         bValue = message.payload["color_b"].as<int>();
-        configManager.set("device.bValue",rValue);
+        configManager.set("device.bValue",bValue);
     }
     if (message.payload["fluo_mode"].is<bool>()) {
         fluoValue = message.payload["fluo_mode"].as<bool>();
@@ -57,6 +59,7 @@ void Aquarium::setSettings(Message message) {
 
 void Aquarium::updateLed() {
   if (ledValue) {
+    Serial.println("ON");
     analogWrite(rPin, rValue);
     analogWrite(gPin, gValue);
     analogWrite(bPin, bValue);

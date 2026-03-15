@@ -4,6 +4,7 @@
 class Gate{
     public:
         Gate(ConfigManager& configManager);
+        void begin();
         void loop();
         void accessGranted(int openGateTime);
         void accessDenied();

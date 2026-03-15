@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include "sensor.h"
 
-Sensor::Sensor(ConfigManager& configManager):configManager(configManager) {
-
+Sensor::Sensor(ConfigManager& configManager):configManager(configManager) {}
+void Sensor::begin(){
     MFRC522 rfid(
       configManager.get("device.ssPin").as<int>(),
       configManager.get("device.rstPin").as<int>()
@@ -11,8 +11,8 @@ Sensor::Sensor(ConfigManager& configManager):configManager(configManager) {
     rfid.PCD_Init(); 
 }
 
+
 void Sensor::loop(){
-  Serial.println(rfid.PCD_PerformSelfTest());
   if (rfid.PCD_PerformSelfTest()) return;
   rfid.PCD_Init(); 
 }

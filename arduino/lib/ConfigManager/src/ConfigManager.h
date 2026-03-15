@@ -11,10 +11,32 @@ public:
     void begin();
     bool load();
     bool save();
-
+    bool exists(const char* path);
+    void removeSection(const char* path); 
     template<typename T>
     void set(const char* path, const T& value) {
         setPath(config.as<JsonVariant>(), path, value);
+    }
+
+    template<typename T>
+    T getOrDefault(const char* key, T defaultValue) {
+        if (exists(key)) {
+            return get(key).as<T>();
+        } else {
+            set(key, defaultValue);
+            save();
+            return defaultValue;
+        }
+    }
+
+    String getOrDefault(const char* key, const String& defaultValue) {
+        if (exists(key)) {
+            return String(get(key).as<const char*>());
+        } else {
+            set(key, defaultValue);
+            save();
+            return defaultValue;
+        }
     }
 
     JsonVariant get(const char* path);
@@ -38,4 +60,5 @@ private:
         setPath(obj[key], rest, value);
     }
     JsonVariant getPath(JsonVariant obj, const String& path);
+    bool existsPath(JsonVariant obj, const String& path);
 };

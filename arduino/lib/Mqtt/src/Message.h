@@ -3,48 +3,88 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include "Types.h"
 
 struct Message {
-    String message_id;
-    String message_event;
-    String message_type;
+    MessageDirection direction;
+    String command;
+    MessageType type;
+    Scope scope;
     String device_id;
-    int qos;
-    bool retain;
+    int peripheral_id;
+    String message_id;
     JsonDocument payload;
 
-    Message(String id, String event, String type, String dev_id, JsonDocument pl, int qos = 0, bool retain = false)
-        : message_id(id), message_event(event), message_type(type), device_id(dev_id), qos(0), retain(false), payload(pl) {}
+    Message() = default;
 
-    String toJson() {
+    Message(
+        MessageDirection dir,
+        const String& cmd,
+        MessageType msgType,
+        Scope sc,
+        const String& devId,
+        int periphId,
+        const String& msgId,
+        JsonDocument pl = JsonDocument()
+    ) : direction(dir), command(cmd), type(msgType), scope(sc),
+        device_id(devId), peripheral_id(periphId), message_id(msgId) {
+              payload.set(pl);
+        }
+
+   String toJson() const {
         JsonDocument doc;
-        doc["message_id"] = message_id;
-        doc["message_event"] = message_event;
-        doc["message_type"] = message_type;
-        doc["device_id"] = device_id;
-        doc["payload"] = payload;
+        JsonObject root = doc.to<JsonObject>();
+
+        root["direction"]     = static_cast<uint8_t>(direction);
+        root["command"]       = command;
+        root["type"]          = static_cast<uint8_t>(type);
+        root["scope"]         = static_cast<uint8_t>(scope);
+        root["device_id"]     = device_id;
+        root["peripheral_id"] = peripheral_id;
+        root["message_id"]    = message_id;
+        root["payload"] = JsonObject();
+
+        if (!payload.isNull()) {
+            root["payload"].set(payload.as<JsonVariantConst>());
+        }
 
         String output;
         serializeJson(doc, output);
         return output;
     }
 
-    static Message fromJson(String json_str) {
+    static Message fromJson(const String& jsonStr) {
         JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, json_str);
-        if (error) {
-        JsonDocument empty_payload;
-        return Message("", "", "", "", empty_payload);
+        DeserializationError err = deserializeJson(doc, jsonStr);
+        if (err) {
+            Serial.println("Payload length:");
+            Serial.println(jsonStr.length());
+
+            Serial.println("Payload content:");
+            Serial.println(jsonStr);
+            Serial.println(err.c_str());
+            return Message();  
         }
-        JsonDocument payload;
-        payload.set(doc["payload"]);
-        return Message(
-        doc["message_id"].as<String>(),
-        doc["message_event"].as<String>(),
-        doc["message_type"].as<String>(),
-        doc["device_id"].as<String>(),
-        payload
+
+        Message msg;
+
+        msg.direction = static_cast<MessageDirection>(
+            doc["direction"].as<int>()  
         );
+
+        msg.command       = doc["command"].as<String>();        
+        msg.type          = static_cast<MessageType>(doc["type"].as<int>());
+        msg.scope         = static_cast<Scope>(doc["scope"].as<int>());
+
+        msg.device_id     = doc["device_id"].as<String>();
+        msg.peripheral_id = doc["peripheral_id"].as<int>();
+        msg.message_id    = doc["message_id"].as<String>();
+
+        if (!doc["payload"].isNull()) {
+            msg.payload.set(doc["payload"]);
+        }
+
+        return msg;
     }
 };
 

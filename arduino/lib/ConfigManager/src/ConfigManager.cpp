@@ -33,6 +33,7 @@ bool ConfigManager::load() {
     }
 
     Serial.println("Config loaded.");
+    displayFileContent();
     return true;
 }
 
@@ -51,7 +52,7 @@ bool ConfigManager::save() {
 }
 
 void ConfigManager::displayFileContent(){
-    File file = LittleFS.open(filename, "r"); // <-- nowe otwarcie
+    File file = LittleFS.open(filename, "r");
     if (!file) {
         Serial.println("Could not open config file");
         return;
@@ -80,13 +81,45 @@ JsonVariant ConfigManager::getPath(JsonVariant obj, const String& path) {
     return getPath(obj[key], rest);
 }
 
+bool ConfigManager::exists(const char* path) {
+    return existsPath(config.as<JsonVariant>(), path);
+}
+
+bool ConfigManager::existsPath(JsonVariant obj, const String& path) {
+    int dotIndex = path.indexOf('.');
+    if (dotIndex < 0) {
+        return !obj[path].isNull();
+    }
+    String key = path.substring(0, dotIndex);
+    String rest = path.substring(dotIndex + 1);
+
+    return existsPath(obj[key], rest);
+}
+
+void ConfigManager::removeSection(const char* path) {
+    JsonVariant obj = get(path);
+    if(!obj.isNull()) {
+        int dotIndex = String(path).lastIndexOf('.');
+        if(dotIndex < 0) {
+            config.remove(path);
+        } else {
+            String parentPath = String(path).substring(0, dotIndex);
+            String key = String(path).substring(dotIndex + 1);
+            JsonVariant parent = get(parentPath.c_str());
+            if(parent.is<JsonObject>()) parent.as<JsonObject>().remove(key);
+        }
+    }
+}
+
 void ConfigManager::listFiles() {
     if (!LittleFS.begin()) {
-        Serial.println("LittleFS init failed!");
-        return;
+    Serial.println("LittleFS init failed!");
+    return;
     }
 
     Serial.println("=== Lista plików w LittleFS ===");
+
+    #if defined(ESP8266)
 
     Dir dir = LittleFS.openDir("/");
     while (dir.next()) {
@@ -95,6 +128,25 @@ void ConfigManager::listFiles() {
         Serial.print("\tRozmiar: ");
         Serial.println(dir.fileSize());
     }
+
+    #elif defined(ESP32)
+
+    File root = LittleFS.open("/");
+    if (!root || !root.isDirectory()) {
+        Serial.println("Nie można otworzyć katalogu");
+        return;
+    }
+
+    File file = root.openNextFile();
+    while (file) {
+        Serial.print("Plik: ");
+        Serial.print(file.name());
+        Serial.print("\tRozmiar: ");
+        Serial.println(file.size());
+        file = root.openNextFile();
+    }
+
+    #endif
 
     Serial.println("=== Koniec listy ===");
 }

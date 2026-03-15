@@ -4,7 +4,7 @@
 
 #include <ArduinoJson.h>
 #include "Message.h"
-Message addTagResponse(Message message, String uid);
-Message onReadRequest(String mac, String uid);
+// Message addTagResponse(Message message, String uid);
+// Message onReadRequest(String mac, String uid);
 
 #endif

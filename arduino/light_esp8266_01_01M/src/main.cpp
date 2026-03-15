@@ -16,9 +16,10 @@ void check_button_mono();
 void check_button_bi();
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   configManager.begin();
   mqtt.begin();
+  button.begin();
   mqtt.onMessage([](Message msg) {
     Serial.println(msg.toJson());
     button.onMessage(msg);
@@ -30,7 +31,6 @@ void setup() {
 void loop() {
   mqtt.loop();
   button.loop();
-
   buttonType = button.getButtonType();
   lastCheck = millis();
   if (buttonType == 0){

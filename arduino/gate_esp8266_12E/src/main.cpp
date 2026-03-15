@@ -11,8 +11,11 @@ Gate gate(configManager);
 Device device(mqtt, sensor, gate, configManager);
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   configManager.begin();
+  sensor.begin();
+  gate.begin();
+  device.begin();
   mqtt.begin();
   mqtt.onMessage([](Message message) {
     device.onMessage(message);

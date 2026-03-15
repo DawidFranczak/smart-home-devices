@@ -6,11 +6,6 @@
 #include "BasicMessage.h"
 
 Lamp::Lamp(Mqtt& mqtt, ConfigManager& configManager) : mqtt(mqtt),configManager(configManager) {
-    lampCount = configManager.get("device.lampCount").as<int>();
-    brightness = configManager.get("device.brightness").as<int>();;
-    step = configManager.get("device.step").as<int>();;
-    lightingTime = configManager.get("device.lightingTime").as<int>();;
-
     isPending = false;
     lampOn = false;
     reverse = false;
@@ -23,6 +18,13 @@ Lamp::Lamp(Mqtt& mqtt, ConfigManager& configManager) : mqtt(mqtt),configManager(
         pwm.setPWM(i, 0, 0);
     }
 };
+
+void Lamp::begin(){
+    lampCount = configManager.get("device.lampCount").as<int>();
+    brightness = configManager.get("device.brightness").as<int>();;
+    step = configManager.get("device.step").as<int>();;
+    lightingTime = configManager.get("device.lightingTime").as<int>();;
+}
 
 void Lamp::loop() {
     updateLamp();

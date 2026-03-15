@@ -17,6 +17,7 @@ void check_button_bi();
 
 void setup() {
   Serial.begin(9600);
+  configManager.begin();
   mqtt.begin();
   mqtt.onMessage([](Message msg) {
     Serial.println(msg.toJson());

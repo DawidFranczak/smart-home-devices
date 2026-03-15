@@ -1,43 +1,96 @@
 #include "BasicMessage.h"
 
-Message connectRequest(String mac, String fun, int wifiStrength, float firmware_version){
+Message connectEvent(String mac, String chipType, int wifiStrength, float firmware_version){
   JsonDocument payload;
   payload["wifi_strength"] = wifiStrength;
-  payload["fun"] = fun;
+  payload["chip_type"] = chipType;
   payload["firmware_version"] = firmware_version;
-  return Message(String(millis()), "device_connect", "request", mac, payload, 1, true);
+  return Message(
+      MessageDirection::INTENT,
+      "device_connect",
+      MessageType::EVENT,
+      Scope::CPU,
+      mac,
+      0,
+      String(millis()),
+      payload
+  );
 }
 
-Message healthCheckRequest(String mac, int wifiStrength){
+Message healthCheckEvent(String mac, int wifiStrength){
   JsonDocument payload;
   payload["wifi_strength"] = wifiStrength;
-  return Message(String(millis()), "health_check", "request", mac, payload);
-}
+  return Message(
+      MessageDirection::INTENT,
+      "health_check",
+      MessageType::EVENT,
+      Scope::CPU,
+      mac,
+      0,
+      String(millis()),
+      payload
+  );
+} 
 
-Message disconnectRequest(String mac){
+Message disconnectEvent(String mac){
   JsonDocument payload;
-  return Message(String(millis()), "device_disconnect", "request", mac, payload);
-}
-Message getSettings(String mac){
-  JsonDocument payload;
-  return Message(String(millis()), "get_settings", "request", mac, payload);
-}
+  return Message(
+      MessageDirection::INTENT,
+      "device_disconnect",
+      MessageType::EVENT,
+      Scope::CPU,
+      mac,
+      0,
+      String(millis()),
+      payload
+  );
+} 
+ 
 
-Message deviceStateRequest(String mac, String state){
-  JsonDocument payload;
-  payload["state"] = state;
-  return Message(String(millis()), "state_change", "request", mac, payload);
-}
-
-Message firmwareUpdateErrorRequest(String mac, String error){
+Message firmwareUpdateErrorEvent(String mac, String error){
   JsonDocument payload;
   payload["message"] = error;
-  return Message(String(millis()), "update_firmware_error", "request", mac, payload);
-}
+  return Message(
+      MessageDirection::INTENT,
+      "update_firmware_error",
+      MessageType::ACTION,
+      Scope::CPU,
+      mac,
+      0,
+      String(millis()),
+      payload
+  );
+} 
 
-Message basicResponse(Message& message, bool accept) {
+Message basicPeripheralResult(Message& message, int peripheralId, bool accept) {
   JsonDocument payload;
-  if (accept) payload["status"] = "accepted";
-  else payload["status"] = "rejected";
-  return Message(message.message_id, message.message_event, "response", message.device_id, payload);
-}
+  if (accept) payload["status"] = static_cast<uint8_t>(ActionResult::ACCEPTED);
+  else payload["status"] = static_cast<uint8_t>(ActionResult::REJECTED);
+  return  Message(
+      MessageDirection::RESULT,
+      message.command,
+      MessageType::ACTION,
+      Scope::PERIPHERAL,
+      message.device_id,
+      peripheralId,
+      message.message_id,
+      payload
+  );
+
+} 
+
+Message basicCPUResult(Message& message, bool accept) {
+  JsonDocument payload;
+  if (accept) payload["status"] = static_cast<uint8_t>(ActionResult::ACCEPTED);
+  else payload["status"] = static_cast<uint8_t>(ActionResult::REJECTED);
+  return Message(
+      MessageDirection::RESULT,
+      message.command,
+      MessageType::ACTION,
+      Scope::CPU,
+      message.device_id,
+      0,
+      message.message_id,
+      payload
+  );
+} 

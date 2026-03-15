@@ -9,6 +9,7 @@ Lamp lamp(mqtt, configManager);
 void setup() {
   // Serial.begin(9600);
   configManager.begin();
+  lamp.begin();
   mqtt.begin();
   mqtt.onMessage([](Message message) {
     // Serial.println(message.toJson());

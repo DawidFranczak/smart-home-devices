@@ -11,6 +11,7 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   // Serial.begin(9600);
   configManager.begin();
+  aquarium.begin();
   mqtt.begin();
   mqtt.onMessage([](Message msg) {
     aquarium.onMessage(msg);

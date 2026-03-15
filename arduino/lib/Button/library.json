@@ -1,7 +1,0 @@
-{
-  "name": "Button",
-  "version": "1.0.0",
-  "dependencies": {
-    "Mqtt": "~1.0.0"
-  }
-}

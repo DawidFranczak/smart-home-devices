@@ -3,6 +3,7 @@
 #include "BasePeripheral.h"
 #include "PeripheralManager.h"
 #include "BasicMessage.h"
+#include <time.h>
 
 Cpu::Cpu(
     EventEngine& engine,
@@ -23,6 +24,27 @@ void Cpu::begin(){
 }
 void Cpu::loop(){
     if(restarRequired && restartOnTick < millis()) ESP.restart();
+    if(!rtcSetup) return;
+
+    checkTime();
+   
+}
+
+void Cpu::checkTime(){
+    time_t now;
+    time(&now);
+    if (now != lastSec) {
+        lastSec = now;
+        struct tm timeinfo;
+        localtime_r(&now, &timeinfo);
+        if (timeinfo.tm_sec == 0) {
+            Event tickEvent;
+            tickEvent.type = "time";
+            tickEvent.emitDeviceId = 0;
+            tickEvent.target = MessageTarget::INTERNAL;
+            engine.emit(tickEvent); 
+        }
+    }
 }
 
 void Cpu::buildPeripherals() {
@@ -31,8 +53,7 @@ void Cpu::buildPeripherals() {
         int id = atoi(kv.key().c_str());
         JsonObject cfg = kv.value().as<JsonObject>();
         String statePath = "states." + String(id);
-        JsonObject st = stateManager.config[statePath].as<JsonObject>();
-        BasePeripheral* p = factory->create(id, cfg, st, engine, stateManager);
+        BasePeripheral* p = factory->create(id, cfg, engine, stateManager);
         if(p) peripheralManager.registerDevice(p);
     }
 }
@@ -58,11 +79,12 @@ void Cpu::handleMessage(Message& message){
         syncEnd(message);
     }else if(message.command == "restart"){
         restart(message);
+    }else if(message.command == "health_check"){
+        healthCheck(message);
     }
 } 
 
 void Cpu::syncStart(Message& message){
-    Serial.println("start sync");
     auto syncType = message.payload["sync_type"].as<int>();
     if(syncType == static_cast<int>(StartSyncType::PERIPHERAL)){
         configManager.removeSection("peripherals");
@@ -88,7 +110,6 @@ void Cpu::syncStart(Message& message){
 }
 
 void Cpu::restart(Message& message){
-    Serial.println("restart");
     restarRequired = true;
     restartOnTick = millis() + 10000; 
     Message resultMsg = basicCPUResult(message, true);
@@ -103,6 +124,17 @@ void Cpu::restart(Message& message){
     engine.emit(ev);
 }
 
+void Cpu::healthCheck(Message& message){
+    Serial.println("UPDATE1");
+    if (message.payload["timestamp"].is<long>()) {
+        Serial.println("UPDATE2");
+        struct timeval tv;
+        tv.tv_sec = message.payload["timestamp"].as<long>();; 
+        tv.tv_usec = 0;
+        settimeofday(&tv, NULL);    
+        rtcSetup = true;
+    }
+}
 
 void Cpu::syncEnd(Message& message){
     configManager.save();
@@ -121,7 +153,6 @@ void Cpu::syncEnd(Message& message){
 }
 
 void Cpu::updatePeripheral(Message& message){
-    Serial.println("updatePeripheral");
     int id = message.payload["id"];
 
     String pathName = "peripherals." + String(id) + ".name";
@@ -162,7 +193,7 @@ void Cpu::updateRule(Message& message){
     configManager.set((basePath + ".targetAction").c_str(), action["action"]);
     
     String settingsStr;
-    serializeJson(action["extraSettings"], settingsStr);
+    serializeJson(action["extra_settings"], settingsStr);
     configManager.set((basePath + ".settings").c_str(), settingsStr.c_str());
 
 

@@ -15,7 +15,7 @@ private:
 
 public:
     PinInput(int id, EventEngine& engine, ConfigManager& stateManager,
-              JsonObject cfg, JsonObject state)
+              JsonObject cfg)
         : BasePeripheral(id, engine), stateManager(stateManager)
     {
         pin = cfg["config"]["pin"];

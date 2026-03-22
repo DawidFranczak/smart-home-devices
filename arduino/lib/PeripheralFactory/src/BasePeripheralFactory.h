@@ -7,5 +7,5 @@
 class BasePeripheralFactory {
 public:
     virtual ~BasePeripheralFactory() {}
-    virtual BasePeripheral* create(int id, JsonObject cfg, JsonObject st, EventEngine& engine, ConfigManager& stateManager) = 0;
+    virtual BasePeripheral* create(int id, JsonObject cfg, EventEngine& engine, ConfigManager& stateManager) = 0;
 };

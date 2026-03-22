@@ -59,7 +59,7 @@ void Mqtt::begin(){
   client.setServer(server, brokerPort);
 
   client.setBufferSize(2048);
-  client.setKeepAlive(20);
+  client.setKeepAlive(5);
 
   client.setCallback([this](char* topic, byte* payload, unsigned int length){
     String msgStr;
@@ -75,9 +75,9 @@ void Mqtt::begin(){
       qm.retain=true;
       sendMessage(qm);
       return;
-    // }else if (msg.command == "device_connect"){
-    //   sendMessage(getSettings(this->getMac()));
-    //   return;
+    }else if (msg.command == "device_connect"){
+      healthCheck();
+      return;
     }else if (msg.command == "update_firmware") {
       if (msg.payload["url"].is<const char*>() && msg.payload["version"].is<float>()) {
           otaUrl = msg.payload["url"];

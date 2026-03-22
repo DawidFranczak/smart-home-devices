@@ -21,12 +21,12 @@ private:
 
 public:
     PinOutput(int id, EventEngine& engine, ConfigManager& stateManager,
-              JsonObject cfg, JsonObject state)
+              JsonObject cfg)
         : BasePeripheral(id, engine), stateManager(stateManager)
     {
         pin = cfg["config"]["pin"];
-        isOn = state["is_on"] | false;
         statePath = "states." + String(id)+ ".is_on";
+        isOn = stateManager.get(statePath.c_str());
     }
 
     void begin() override {

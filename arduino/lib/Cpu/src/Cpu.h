@@ -19,7 +19,6 @@ private:
     void syncEnd(Message& message);
     void restart(Message& message);
     void updateRule(Message& message);
-    void healthCheck(Message& message);
     void buildPeripherals();
 public:
     Cpu(

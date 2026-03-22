@@ -16,8 +16,7 @@ private:
 
     void requestSync() {
         JsonDocument payload;
-        notify("on_sync_time", "on_sync_time", payload, "", MessageType::EVENT);
-        Serial.println("RTC: Sync request sent to server");
+        notify("on_sync_time", "on_sync_time", payload, "", MessageType::EVENT, MessageTarget::BACKEND);
     }
 
 public:
@@ -49,11 +48,9 @@ public:
             struct tm timeinfo = {0}; 
             if (localtime_r(&now_ts, &timeinfo)) {
                 if (timeinfo.tm_sec == 0) {
-                    Event tickEvent;
-                    tickEvent.type = "on_time";
-                    tickEvent.emitDeviceId = this->getId();
-                    tickEvent.target = MessageTarget::INTERNAL;
-                    engine.emit(tickEvent); 
+                    float time = timeinfo.tm_hour *60 + timeinfo.tm_min;
+                    JsonDocument payload;
+                    notify("on_time", "on_time", payload, "", MessageType::EVENT, MessageTarget::INTERNAL, time);
                 }
             }
         }

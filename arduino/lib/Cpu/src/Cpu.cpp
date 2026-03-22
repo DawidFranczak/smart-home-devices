@@ -150,6 +150,7 @@ void Cpu::updateRule(Message& message){
     int id = payload["id"];
     JsonObject trigger = payload["triggers"][0];
     JsonObject action = payload["actions"][0];
+    JsonObject condtion = payload["conditions"][0];
     
     String basePath = "rules." + String(id);
 
@@ -157,6 +158,8 @@ void Cpu::updateRule(Message& message){
     configManager.set((basePath + ".triggerEvent").c_str(), trigger["event"]);
     configManager.set((basePath + ".targetId").c_str(), action["peripheral"]);
     configManager.set((basePath + ".targetAction").c_str(), action["action"]);
+    configManager.set((basePath + ".conditionsOperator").c_str(), condtion["operator"]);
+    configManager.set((basePath + ".conditionsValue").c_str(), (float)condtion["value"]);
     
     String settingsStr;
     serializeJson(action["extra_settings"], settingsStr);

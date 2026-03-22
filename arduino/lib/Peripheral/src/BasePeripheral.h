@@ -12,7 +12,7 @@ class BasePeripheral {
         int  id;
         EventEngine& engine;
         String  mac = WiFi.macAddress();
-        void notify(String eventType, String command, JsonDocument payload, String messageId = "", MessageType type=MessageType::ACTION);
+        void notify(String eventType, String command, JsonDocument payload, String messageId = "", MessageType type=MessageType::ACTION,  MessageTarget target=MessageTarget::BOTH, float eventValue=0.0);
 
 
     public:

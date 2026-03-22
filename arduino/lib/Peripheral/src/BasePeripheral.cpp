@@ -1,7 +1,7 @@
 #include "BasePeripheral.h"
 #include "EventEngine.h" 
 
-void BasePeripheral::notify(String eventType, String command, JsonDocument payload, String messageId, MessageType type) {
+void BasePeripheral::notify(String eventType, String command, JsonDocument payload, String messageId, MessageType type, MessageTarget target, float eventvalue) {
     Message msg;
     msg.scope = Scope::PERIPHERAL;
     msg.direction = messageId.isEmpty() ? MessageDirection::INTENT : MessageDirection::RESULT;
@@ -13,12 +13,13 @@ void BasePeripheral::notify(String eventType, String command, JsonDocument paylo
     msg.device_id = mac;
 
     Event ev;
-    ev.target = MessageTarget::BOTH;
+    ev.target = target;
     ev.type = eventType;
     ev.emitDeviceId = this->id;
     ev.msg.payload = msg.toJson();
     ev.msg.qos = 1;
     ev.msg.retain = true;
+    ev.value = eventvalue;
 
     engine.emit(ev);
 }

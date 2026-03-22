@@ -53,6 +53,7 @@ struct Event {
     QueuedMessage msg;
     int emitDeviceId;
     String type;
+    float value;
 };
 
 struct Rule {
@@ -61,5 +62,7 @@ struct Rule {
     int targetId;
     String targetAction;
     String extraSettings;
+    String conditionsOperator;
+    float conditionsValue;
 };
 

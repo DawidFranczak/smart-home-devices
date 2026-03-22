@@ -92,7 +92,19 @@ public:
             
             JsonDocument responsePayload;
             notify("on_state_updated", "on_state_updated", responsePayload);
+            
+        }else if ("toggle"){
+            isOn = !isOn;
+            apply();
+
+            stateManager.set((baseStatePath+"is_on").c_str(), isOn);
+            stateManager.save();
+
+            JsonDocument payload;
+            payload["is_on"] = isOn;
+            notify("on_toggle", "on_toggle", payload, "",MessageType::EVENT);
         }
+
     }
 
 

@@ -22,29 +22,9 @@ Cpu::Cpu(
 void Cpu::begin(){
     buildPeripherals();
 }
+
 void Cpu::loop(){
     if(restarRequired && restartOnTick < millis()) ESP.restart();
-    if(!rtcSetup) return;
-
-    checkTime();
-   
-}
-
-void Cpu::checkTime(){
-    time_t now;
-    time(&now);
-    if (now != lastSec) {
-        lastSec = now;
-        struct tm timeinfo;
-        localtime_r(&now, &timeinfo);
-        if (timeinfo.tm_sec == 0) {
-            Event tickEvent;
-            tickEvent.type = "time";
-            tickEvent.emitDeviceId = 0;
-            tickEvent.target = MessageTarget::INTERNAL;
-            engine.emit(tickEvent); 
-        }
-    }
 }
 
 void Cpu::buildPeripherals() {
@@ -79,8 +59,6 @@ void Cpu::handleMessage(Message& message){
         syncEnd(message);
     }else if(message.command == "restart"){
         restart(message);
-    }else if(message.command == "health_check"){
-        healthCheck(message);
     }
 } 
 
@@ -122,18 +100,6 @@ void Cpu::restart(Message& message){
     ev.type = message.command;
 
     engine.emit(ev);
-}
-
-void Cpu::healthCheck(Message& message){
-    Serial.println("UPDATE1");
-    if (message.payload["timestamp"].is<long>()) {
-        Serial.println("UPDATE2");
-        struct timeval tv;
-        tv.tv_sec = message.payload["timestamp"].as<long>();; 
-        tv.tv_usec = 0;
-        settimeofday(&tv, NULL);    
-        rtcSetup = true;
-    }
 }
 
 void Cpu::syncEnd(Message& message){
@@ -181,9 +147,9 @@ void Cpu::updatePeripheral(Message& message){
 void Cpu::updateRule(Message& message){
     JsonObject payload = message.payload.as<JsonObject>();
 
-    int id = message.payload["id"];
-    JsonObject trigger = message.payload["triggers"][0];
-    JsonObject action = message.payload["actions"][0];
+    int id = payload["id"];
+    JsonObject trigger = payload["triggers"][0];
+    JsonObject action = payload["actions"][0];
     
     String basePath = "rules." + String(id);
 

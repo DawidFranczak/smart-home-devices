@@ -11,11 +11,8 @@ private:
 
     bool syncInProgress = false;
     bool restarRequired = false;
-    bool rtcSetup = false;
-    time_t lastSec = 0;
     unsigned long restartOnTick = 0;
     
-
     void handleMessage(Message& message);
     void syncStart(Message& message);
     void updatePeripheral(Message& message);
@@ -24,7 +21,6 @@ private:
     void updateRule(Message& message);
     void healthCheck(Message& message);
     void buildPeripherals();
-    void checkTime();
 public:
     Cpu(
         EventEngine& engine,

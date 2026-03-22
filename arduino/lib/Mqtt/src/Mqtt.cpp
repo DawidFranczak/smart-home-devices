@@ -39,8 +39,6 @@ void Mqtt::begin(){
   brokerIp = configManager.get("mqtt.brokerIp").as<String>();
   brokerPort = configManager.get("mqtt.brokerPort").as<int>();
   brokerName = configManager.get("mqtt.brokerName").as<const char*>();
-  healthCheckInterval = configManager.get("mqtt.healthCheckInterval").as<unsigned long>();
-  healthCheckInterval = healthCheckInterval * 1000;
   ssid = configManager.get("wifi.ssid").as<const char*>();
   password = configManager.get("wifi.password").as<const char*>();
   
@@ -75,10 +73,8 @@ void Mqtt::begin(){
       qm.retain=true;
       sendMessage(qm);
       return;
-    }else if (msg.command == "device_connect"){
-      healthCheck();
-      return;
-    }else if (msg.command == "update_firmware") {
+    }
+    else if (msg.command == "update_firmware") {
       if (msg.payload["url"].is<const char*>() && msg.payload["version"].is<float>()) {
           otaUrl = msg.payload["url"];
           otaActive = true;
@@ -119,13 +115,6 @@ void Mqtt::loop() {
     if (now - lastWifiCheck >= 10000) {
       lastWifiCheck = now;
       reconnect();
-    }
-
-    now = millis();
-    static unsigned long lastHealthCheck = 0;
-    if(now - lastHealthCheck > (unsigned long)healthCheckInterval){
-      healthCheck();
-      lastHealthCheck=now;
     }
 
     sendToRouter();
@@ -201,15 +190,6 @@ if (pointer < BUFFER_SIZE) {
     pointer++;
   }
   sendToRouter();
-}
-
-void Mqtt::healthCheck() {
-  Message msg = healthCheckEvent(mac, WiFi.RSSI());
-  QueuedMessage qm;
-  qm.payload = msg.toJson();
-  qm.qos=0;
-  qm.retain=false;
-  sendMessage(qm);
 }
 
 void Mqtt::onMessage(std::function<void(Message&)> cb) {

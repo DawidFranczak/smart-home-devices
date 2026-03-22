@@ -3,6 +3,7 @@
 #include "PinOutput.h"
 #include "PinInput.h"
 #include "RgbStrip.h"
+#include "Rtc.h"
 
 class ESP8266PeripheralFactory : public BasePeripheralFactory {
 public:
@@ -14,6 +15,8 @@ public:
             return new PinInput(id, engine, stateManager, cfg);
         } else if(type == "rgb_strip") {
             return new RgbStrip(id, engine, stateManager, cfg);
+        } else if(type == "rtc") {
+            return new Rtc(id, engine, stateManager, cfg);
         } 
         return nullptr;
     }

@@ -10,23 +10,20 @@ class PinOutput : public BasePeripheral {
 private:
     int pin;
     bool isOn;
-    ConfigManager& stateManager;
-    String statePath;
+    String statePath = baseStatePath + ".is_on";
 
     void toggle(){
         digitalWrite(pin, !digitalRead(pin));
-        stateManager.set(statePath.c_str(), digitalRead(pin));
-        stateManager.save();
+        systemContext.stateManager.set(statePath.c_str(), digitalRead(pin));
+        systemContext.stateManager.save();
     }
 
 public:
-    PinOutput(int id, EventEngine& engine, ConfigManager& stateManager,
-              JsonObject cfg)
-        : BasePeripheral(id, engine), stateManager(stateManager)
+    PinOutput(int id, SystemContext& ctx, JsonObject cfg)
+        : BasePeripheral(id, ctx)
     {
         pin = cfg["config"]["pin"];
-        statePath = "states." + String(id)+ ".is_on";
-        isOn = stateManager.get(statePath.c_str());
+        isOn = systemContext.stateManager.get(statePath.c_str());
     }
 
     void begin() override {

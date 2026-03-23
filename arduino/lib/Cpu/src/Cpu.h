@@ -3,12 +3,8 @@
 #include "BasePeripheralFactory.h"
 class Cpu {
 private:
-    EventEngine& engine;
     PeripheralManager& peripheralManager;
-    ConfigManager& configManager;
-    ConfigManager& stateManager;
-    BasePeripheralFactory* factory;
-
+    SystemContext& systemContext;
     bool syncInProgress = false;
     bool restarRequired = false;
     unsigned long restartOnTick = 0;
@@ -19,14 +15,10 @@ private:
     void syncEnd(Message& message);
     void restart(Message& message);
     void updateRule(Message& message);
-    void buildPeripherals();
 public:
     Cpu(
-        EventEngine& engine,
         PeripheralManager& peripheralManager,
-        ConfigManager& configManager,
-        ConfigManager& stateManager,
-        BasePeripheralFactory* factory
+        SystemContext& systemContext
     );
 
     void begin();

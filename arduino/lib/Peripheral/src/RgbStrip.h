@@ -14,22 +14,16 @@ private:
     int currentR = 0, currentG = 0, currentB = 0;
     int brightness = 100;
     bool isOn = false;
-    String baseStatePath;
-    ConfigManager& stateManager;
 
 public:
-    RgbStrip(int id, EventEngine& engine, ConfigManager& stateManager,
-              JsonObject config)
-        : BasePeripheral(id, engine), stateManager(stateManager)
+    RgbStrip(int id, SystemContext& systemContext, JsonObject cfg)
+        : BasePeripheral(id, systemContext)
     {
-        frequency = config["config"]["frequency"] | 1000;
-        resolution = config["config"]["resolution_bits"] | 8;
-        rPin  = config["config"]["r_pin"] | -1;
-        gPin  = config["config"]["g_pin"] | -1;
-        bPin  = config["config"]["b_pin"] | -1;
-        
-        baseStatePath = "states." + String(id) + ".";
-        
+        frequency = cfg["config"]["frequency"] | 1000;
+        resolution = cfg["config"]["resolution_bits"] | 8;
+        rPin  = cfg["config"]["r_pin"] | -1;
+        gPin  = cfg["config"]["g_pin"] | -1;
+        bPin  = cfg["config"]["b_pin"] | -1;
     }
     
     void begin() override {
@@ -39,16 +33,16 @@ public:
         
         analogWriteRange(1023);
         if (frequency > 0) analogWriteFreq(frequency);
-        
-        currentR = stateManager.get((baseStatePath+"r_duty_cycle").c_str());
-        currentG = stateManager.get((baseStatePath+"g_duty_cycle").c_str());
-        currentB = stateManager.get((baseStatePath+"b_duty_cycle").c_str());
-        brightness = stateManager.get((baseStatePath+"brightness").c_str());
-        isOn = stateManager.get((baseStatePath+"is_on").c_str());
+        currentR = systemContext.stateManager.get((baseStatePath+"r_duty_cycle").c_str());
+        currentG = systemContext.stateManager.get((baseStatePath+"g_duty_cycle").c_str());
+        currentB = systemContext.stateManager.get((baseStatePath+"b_duty_cycle").c_str());
+        brightness = systemContext.stateManager.get((baseStatePath+"brightness").c_str());
+        isOn = systemContext.stateManager.get((baseStatePath+"is_on").c_str());
         apply();
     }
 
-    void loop() override {}
+    void loop() override {
+    }
 
     void onMessage(Message& msg) override {
         if(msg.command == "update_state"){
@@ -81,12 +75,12 @@ public:
             isOn = payload["is_on"] | isOn;
             brightness = payload["brightness"] | brightness;
 
-            stateManager.set((baseStatePath+"r_duty_cycle").c_str(), currentR);
-            stateManager.set((baseStatePath+"g_duty_cycle").c_str(), currentG);
-            stateManager.set((baseStatePath+"b_duty_cycle").c_str(), currentB);
-            stateManager.set((baseStatePath+"brightness").c_str(), brightness);
-            stateManager.set((baseStatePath+"is_on").c_str(), isOn);
-            stateManager.save();
+            systemContext.stateManager.set((baseStatePath+"r_duty_cycle").c_str(), currentR);
+            systemContext.stateManager.set((baseStatePath+"g_duty_cycle").c_str(), currentG);
+            systemContext.stateManager.set((baseStatePath+"b_duty_cycle").c_str(), currentB);
+            systemContext.stateManager.set((baseStatePath+"brightness").c_str(), brightness);
+            systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
+            systemContext.stateManager.save();
 
             apply();
             
@@ -97,8 +91,8 @@ public:
             isOn = !isOn;
             apply();
 
-            stateManager.set((baseStatePath+"is_on").c_str(), isOn);
-            stateManager.save();
+            systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
+            systemContext.stateManager.save();
 
             JsonDocument payload;
             payload["is_on"] = isOn;
@@ -116,12 +110,12 @@ public:
         isOn = p["is_on"] | isOn;
         brightness = p["brightness"] | brightness;
 
-        stateManager.set((baseStatePath+"r_duty_cycle").c_str(), currentR);
-        stateManager.set((baseStatePath+"g_duty_cycle").c_str(), currentG);
-        stateManager.set((baseStatePath+"b_duty_cycle").c_str(), currentB);
-        stateManager.set((baseStatePath+"brightness").c_str(), brightness);
-        stateManager.set((baseStatePath+"is_on").c_str(), isOn);
-        stateManager.save();
+        systemContext.stateManager.set((baseStatePath+"r_duty_cycle").c_str(), currentR);
+        systemContext.stateManager.set((baseStatePath+"g_duty_cycle").c_str(), currentG);
+        systemContext.stateManager.set((baseStatePath+"b_duty_cycle").c_str(), currentB);
+        systemContext.stateManager.set((baseStatePath+"brightness").c_str(), brightness);
+        systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
+        systemContext.stateManager.save();
 
         apply();
 
@@ -135,8 +129,8 @@ public:
         isOn = !isOn;
         apply();
 
-        stateManager.set((baseStatePath+"is_on").c_str(), isOn);
-        stateManager.save();
+        systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
+        systemContext.stateManager.save();
 
         JsonDocument payload;
         payload["is_on"] = isOn;

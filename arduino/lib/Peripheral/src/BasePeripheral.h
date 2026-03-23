@@ -1,25 +1,24 @@
 #pragma once
-#include "Types.h"
-#include <ESP8266WiFi.h>
+#include <Arduino.h>
 #include "Message.h"
+#include "Types.h"
+#include "PeripheralManager.h"
 
 class Message;
 
-class EventEngine;
+class SystemContext;
 
 class BasePeripheral {
     protected:
         int  id;
-        EventEngine& engine;
+        SystemContext& systemContext;
         String  mac = WiFi.macAddress();
         void notify(String eventType, String command, JsonDocument payload, String messageId = "", MessageType type=MessageType::ACTION,  MessageTarget target=MessageTarget::BOTH, float eventValue=0.0);
-
+        String baseStatePath = "states." + String(id) + ".";
 
     public:
-        BasePeripheral(int id, EventEngine& engine)
-            : id(id), engine(engine) {
-                
-            }
+        BasePeripheral(int id, SystemContext& systemContext)
+            : id(id), systemContext(systemContext) {}
 
         virtual void begin() = 0;
         virtual void loop() = 0;

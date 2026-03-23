@@ -10,13 +10,11 @@ class PinInput : public BasePeripheral {
 private:
     int pin;
     String mode;
-    ConfigManager& stateManager;
     bool lastState;
 
 public:
-    PinInput(int id, EventEngine& engine, ConfigManager& stateManager,
-              JsonObject cfg)
-        : BasePeripheral(id, engine), stateManager(stateManager)
+    PinInput(int id, SystemContext& ctx, JsonObject cfg)
+        : BasePeripheral(id, ctx)
     {
         pin = cfg["config"]["pin"];
         mode = cfg["config"]["mode"].as<String>();

@@ -1,5 +1,6 @@
 #include "BasePeripheral.h"
 #include "EventEngine.h" 
+#include "SystemContext.h"
 
 void BasePeripheral::notify(String eventType, String command, JsonDocument payload, String messageId, MessageType type, MessageTarget target, float eventvalue) {
     Message msg;
@@ -21,5 +22,5 @@ void BasePeripheral::notify(String eventType, String command, JsonDocument paylo
     ev.msg.retain = true;
     ev.value = eventvalue;
 
-    engine.emit(ev);
+    systemContext.eventEngine.emit(ev);
 }

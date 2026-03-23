@@ -10,7 +10,6 @@ class Rtc : public BasePeripheral {
 private:
     bool rtcSetup = false;
     time_t lastSec = 0;
-    ConfigManager& stateManager;
     unsigned long lastSync = 0;
     unsigned long now = millis();
 
@@ -20,9 +19,8 @@ private:
     }
 
 public:
-    Rtc(int id, EventEngine& engine, ConfigManager& stateManager,
-              JsonObject cfg)
-        : BasePeripheral(id, engine), stateManager(stateManager)
+    Rtc(int id, SystemContext& ctx, JsonObject cfg)
+        : BasePeripheral(id, ctx)
     {
         lastSync = millis();
     }

@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "PeripheralManager.h"
+#include "BasePeripheral.h"
 #include "Types.h"
 #include "Mqtt.h"
 

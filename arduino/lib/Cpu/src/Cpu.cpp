@@ -1,41 +1,21 @@
 #include "Types.h"
 #include "Cpu.h"
-#include "BasePeripheral.h"
 #include "PeripheralManager.h"
 #include "BasicMessage.h"
+#include "SystemContext.h"
 #include <time.h>
 
 Cpu::Cpu(
-    EventEngine& engine,
     PeripheralManager& peripheralManager,
-    ConfigManager& configManager,
-    ConfigManager& stateManager,
-    BasePeripheralFactory* factory
+    SystemContext& systemContext
 ): 
-    engine(engine),
     peripheralManager(peripheralManager),
-    configManager(configManager),
-    stateManager(stateManager),
-    factory(factory)
+    systemContext(systemContext)
     {};
     
-void Cpu::begin(){
-    buildPeripherals();
-}
 
 void Cpu::loop(){
     if(restarRequired && restartOnTick < millis()) ESP.restart();
-}
-
-void Cpu::buildPeripherals() {
-    JsonObject peripherals = configManager.config["peripherals"].as<JsonObject>();
-    for(JsonPair kv : peripherals) {
-        int id = atoi(kv.key().c_str());
-        JsonObject cfg = kv.value().as<JsonObject>();
-        String statePath = "states." + String(id);
-        BasePeripheral* p = factory->create(id, cfg, engine, stateManager);
-        if(p) peripheralManager.registerDevice(p);
-    }
 }
 
 void Cpu::onMessage(Message& message){
@@ -47,6 +27,7 @@ void Cpu::onMessage(Message& message){
         if(bp) bp->onMessage(message);
     }
 }
+void Cpu::begin(){}
 
 void Cpu::handleMessage(Message& message){
     if(message.command == "sync_start") {
@@ -65,11 +46,11 @@ void Cpu::handleMessage(Message& message){
 void Cpu::syncStart(Message& message){
     auto syncType = message.payload["sync_type"].as<int>();
     if(syncType == static_cast<int>(StartSyncType::PERIPHERAL)){
-        configManager.removeSection("peripherals");
-        stateManager.removeSection("states"); 
+        systemContext.configManager.removeSection("peripherals");
+        systemContext.stateManager.removeSection("states"); 
         
     }else if (syncType == static_cast<int>(StartSyncType::RULE)){
-        configManager.removeSection("rules");
+        systemContext.configManager.removeSection("rules");
     }
     peripheralManager.startSync();
     syncInProgress=true;
@@ -84,7 +65,7 @@ void Cpu::syncStart(Message& message){
     ev.msg.retain =true;
     ev.emitDeviceId = 0;
     ev.type = message.command;
-    engine.emit(ev);
+    systemContext.eventEngine.emit(ev);
 }
 
 void Cpu::restart(Message& message){
@@ -99,12 +80,12 @@ void Cpu::restart(Message& message){
     ev.emitDeviceId = 0;
     ev.type = message.command;
 
-    engine.emit(ev);
+    systemContext.eventEngine.emit(ev);
 }
 
 void Cpu::syncEnd(Message& message){
-    configManager.save();
-    stateManager.save();
+    systemContext.configManager.save();
+    systemContext.stateManager.save();
 
     Message resultMsg = basicCPUResult(message, true);
     Event ev;
@@ -115,20 +96,20 @@ void Cpu::syncEnd(Message& message){
     ev.emitDeviceId = 0;
     ev.type = message.command;
 
-    engine.emit(ev);
+    systemContext.eventEngine.emit(ev);
 }
 
 void Cpu::updatePeripheral(Message& message){
     int id = message.payload["id"];
 
     String pathName = "peripherals." + String(id) + ".name";
-    configManager.set(pathName.c_str(), message.payload["name"]);
+    systemContext.configManager.set(pathName.c_str(), message.payload["name"]);
 
     String pathConfig = "peripherals." + String(id) + ".config";
-    configManager.set(pathConfig.c_str(), message.payload["config"]);
+    systemContext.configManager.set(pathConfig.c_str(), message.payload["config"]);
     
     String statePath = "states." + String(id);
-    stateManager.set(statePath.c_str(), message.payload["state"]);
+    systemContext.stateManager.set(statePath.c_str(), message.payload["state"]);
 
 
     Message resultMsg = basicCPUResult(message, true);
@@ -141,7 +122,7 @@ void Cpu::updatePeripheral(Message& message){
     ev.emitDeviceId = 0;
     ev.type = message.command;
 
-    engine.emit(ev);
+    systemContext.eventEngine.emit(ev);
 }
 
 void Cpu::updateRule(Message& message){
@@ -154,16 +135,16 @@ void Cpu::updateRule(Message& message){
     
     String basePath = "rules." + String(id);
 
-    configManager.set((basePath + ".triggerId").c_str(), trigger["peripheral"]);
-    configManager.set((basePath + ".triggerEvent").c_str(), trigger["event"]);
-    configManager.set((basePath + ".targetId").c_str(), action["peripheral"]);
-    configManager.set((basePath + ".targetAction").c_str(), action["action"]);
-    configManager.set((basePath + ".conditionsOperator").c_str(), condtion["operator"]);
-    configManager.set((basePath + ".conditionsValue").c_str(), (float)condtion["value"]);
+    systemContext.configManager.set((basePath + ".triggerId").c_str(), trigger["peripheral"]);
+    systemContext.configManager.set((basePath + ".triggerEvent").c_str(), trigger["event"]);
+    systemContext.configManager.set((basePath + ".targetId").c_str(), action["peripheral"]);
+    systemContext.configManager.set((basePath + ".targetAction").c_str(), action["action"]);
+    systemContext.configManager.set((basePath + ".conditionsOperator").c_str(), condtion["operator"]);
+    systemContext.configManager.set((basePath + ".conditionsValue").c_str(), (float)condtion["value"]);
     
     String settingsStr;
     serializeJson(action["extra_settings"], settingsStr);
-    configManager.set((basePath + ".settings").c_str(), settingsStr.c_str());
+    systemContext.configManager.set((basePath + ".settings").c_str(), settingsStr.c_str());
 
 
     Message resultMsg = basicCPUResult(message, true);
@@ -175,5 +156,5 @@ void Cpu::updateRule(Message& message){
     ev.emitDeviceId = 0;
     ev.type = message.command;
 
-    engine.emit(ev);
+    systemContext.eventEngine.emit(ev);
 }

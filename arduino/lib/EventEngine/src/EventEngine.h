@@ -55,9 +55,6 @@ public:
     }
 
     bool checkCondition(float incomingValue, String op, float ruleValue) {
-        Serial.print(incomingValue);
-        Serial.print(op);
-        Serial.println(ruleValue);
         if (op == "==") return incomingValue == ruleValue;
         if (op == "!=") return incomingValue != ruleValue;
         if (op == ">")  return incomingValue > ruleValue;

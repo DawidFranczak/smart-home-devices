@@ -1,10 +1,10 @@
 {
   "wifi": {
-    "ssid": "Tenda",
-    "password": "1RKKHAPIEJ"
+    "ssid": "motog54",
+    "password": "12345678"
   },
   "mqtt": {
-    "brokerIp": "192.168.1.118",
+    "brokerIp": "10.48.1.41",
     "brokerPort": 1883,
     "brokerName": "hub",
     "healthCheckInterval": 600

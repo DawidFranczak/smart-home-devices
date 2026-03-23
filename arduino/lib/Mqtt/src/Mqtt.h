@@ -2,7 +2,7 @@
 #define MQTT_H
 
 #include <Arduino.h>
-#include <PubSubClient.h>
+#include <AsyncMqttClient.h>
 #include <Message.h>
 #include <Ticker.h>
 #include <ConfigManager.h>
@@ -20,7 +20,7 @@
 class Mqtt {
   private:
     WiFiClient espClient;
-    PubSubClient client;
+    AsyncMqttClient client;
     ConfigManager& configManager;
     
     const char* deviceFunction;
@@ -31,18 +31,16 @@ class Mqtt {
     const char* password;
     float firmwareVersion;
     const char* chipType;
+    String _tempPayload;
     
     bool otaActive;
     const char* otaUrl;
     int healthCheckInterval;
-    unsigned long lastHealthCheck = 0;
-    bool sending = false;
     std::function<void(Message&)> messageHandler;
     int pointer = 0; 
     QueuedMessage messageBuffer[BUFFER_SIZE];
     String willMessage;
     void sendToRouter();
-    void healthCheck();
     void reconnect();
   public:
     Mqtt(ConfigManager& configManager);

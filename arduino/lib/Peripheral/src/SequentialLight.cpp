@@ -6,12 +6,20 @@ SequentialLight::SequentialLight(int id, SystemContext& systemContext, JsonObjec
     address = config["config"]["address"] | 0x40;
     frequency = config["config"]["frequency"] | 50;
     lightCount  = config["config"]["light_count"] | 16;
+    isPending = false;
+    lightOn = false;
+    reverse = false;
+    state = IDLE;
+    currentLightIndex = 0;
 }
 
 void SequentialLight::begin(){
-    step = systemContext.stateManager.get((baseStatePath+".step").c_str());
-    brightness = systemContext.stateManager.get((baseStatePath+".brightness").c_str());
-    lightingTime = systemContext.stateManager.get((baseStatePath+".lighting_time").c_str());
+    step = systemContext.stateManager.get((baseStatePath+"step").c_str());
+    brightness = systemContext.stateManager.get((baseStatePath+"brightness").c_str());
+    lightingTime = systemContext.stateManager.get((baseStatePath+"lighting_time").c_str());
+    step = step *  3;
+    brightness = brightness * 40.95;
+    lightingTime = lightingTime * 1000;
     
     JsonArray periodsArr = systemContext.stateManager.config["states"][String(id)]["lighting_period"].as<JsonArray>();
     
@@ -19,14 +27,16 @@ void SequentialLight::begin(){
 
     pwm = Adafruit_PWMServoDriver();
     pwm.begin();    
-    pwm.setPWMFreq(50);
+    pwm.setPWMFreq(100);
     for (int i = 0; i < 16; i++) {
         pwm.setPWM(i, 0, 0);
     }
-    Serial.println("SequentialLight started");
 }
 
 void SequentialLight::loop() {
+    static unsigned long lastAnimStep =0;
+    if (millis() - lastAnimStep < 20) return; 
+    lastAnimStep = millis();
     update();
 }
 
@@ -35,16 +45,33 @@ void SequentialLight::onMessage(Message& message) {
     if (message.payload["reverse"].is<bool>()) {
         reverse = message.payload["reverse"].as<bool>();
     }
+    JsonDocument payload;
+    payload["status"] = static_cast<uint8_t>(ActionResult::ACCEPTED);
     if (message.command == "update_state") {
         updateState(message);
     } else if (message.command == "off") {
+        notify("off",message.command, payload,message.message_id,MessageType::ACTION,MessageTarget::BACKEND);
         turnOff();
+        JsonDocument payload2;
+        notify("on_off","on_off", payload2,"",MessageType::EVENT);
+
     } else if (message.command == "on") {
+        notify("on",message.command, payload,message.message_id,MessageType::ACTION,MessageTarget::BACKEND);
         turnOn();
+        JsonDocument payload2;
+        notify("on_on","on_on", payload2,"",MessageType::EVENT);
     } else if (message.command == "blink") {
+        notify("blink",message.command, payload,message.message_id,MessageType::ACTION,MessageTarget::BACKEND);
         blink();
+        JsonDocument payload2;
+        payload2["status"] = 1; // Start
+        notify("on_blink","on_blink", payload2,"",MessageType::EVENT);
     } else if (message.command == "toggle") {
+        notify("toggle",message.command, payload,message.message_id,MessageType::ACTION,MessageTarget::BACKEND);
         toggle();
+        JsonDocument payload2;
+        payload2["is_on"] = lightOn;
+        notify("on_toggle","on_toggle", payload2,"",MessageType::EVENT);
     }
 }
 
@@ -102,6 +129,7 @@ void SequentialLight::turnOff() {
 }
 
 void SequentialLight::blink() {
+    Serial.println(isPending);
     if (isPending) return;
     isPending = true;
     state = BLINKING;
@@ -157,12 +185,12 @@ bool SequentialLight::_turnOn(){
     if (currentBrightness < brightness) {
         currentBrightness += step;
         if (currentBrightness > brightness) currentBrightness = brightness;
-        pwm.setPWM(currentLightIndex, 0, currentBrightness);
+       pwm.setPWM(currentLightIndex, 0, currentBrightness);
     } else {
         currentLightIndex = reverse ? currentLightIndex - 1 : currentLightIndex + 1;
         if (currentLightIndex >= 0 && currentLightIndex < lightCount) {
             currentBrightness = 0;
-            pwm.setPWM(currentLightIndex, 0, currentBrightness);
+              pwm.setPWM(currentLightIndex, 0, currentBrightness);
         }
         return (reverse && currentLightIndex < 0) || (!reverse && currentLightIndex >= lightCount);
     }
@@ -173,12 +201,12 @@ bool SequentialLight::_turnOff(){
     if (currentBrightness > 0) {
         currentBrightness -= step;
         if (currentBrightness < 0) currentBrightness = 0;
-        pwm.setPWM(currentLightIndex, 0, currentBrightness);
+          pwm.setPWM(currentLightIndex, 0, currentBrightness);
     } else {
         currentLightIndex = reverse ? currentLightIndex - 1 : currentLightIndex + 1;
         if (currentLightIndex >= 0 && currentLightIndex < lightCount) {
             currentBrightness = brightness;
-            pwm.setPWM(currentLightIndex, 0, currentBrightness);
+              pwm.setPWM(currentLightIndex, 0, currentBrightness);
         }
         return (reverse && currentLightIndex < 0) || (!reverse && currentLightIndex >= lightCount);
     }

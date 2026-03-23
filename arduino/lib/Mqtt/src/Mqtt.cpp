@@ -27,8 +27,7 @@
 
 
 Mqtt::Mqtt(ConfigManager& configManager)
-  : espClient(),
-    client(espClient),
+  : client(),
     configManager(configManager){}
 
 void Mqtt::begin(){
@@ -42,55 +41,72 @@ void Mqtt::begin(){
   ssid = configManager.get("wifi.ssid").as<const char*>();
   password = configManager.get("wifi.password").as<const char*>();
   
+  
   willMessage = disconnectEvent(mac).toJson();
-  WiFi.begin(ssid, password);
+  client.setWill(brokerName, 1, true, willMessage.c_str());
+  client.setKeepAlive(5);
 
-  for (size_t i = 0; i < 5; i++)
-  {
-    if (WiFi.status() == WL_CONNECTED) break;
-     delay(5000);
-     Serial.println(".");
-  }
+  client.onConnect([this](bool sessionPresent) {
+    String topic = "device/" + this->mac + "/+";
+    client.subscribe(topic.c_str(), 1);
+    client.subscribe("device/broadcast/",1);
+    Message msg = connectEvent(mac, chipType, WiFi.RSSI(), firmwareVersion); 
+    QueuedMessage qm;
+    qm.payload = msg.toJson();
+    qm.qos=1;
+    qm.retain=true;
+    sendMessage(qm);
+    Serial.println("MQTT OK");
+    connected = true;
+  });
+
+  client.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
+    client.connect();
+    connected = false;
+  });
+
+  client.onMessage([this](char* topic, char* payload,
+                      AsyncMqttClientMessageProperties properties,
+                      size_t len, size_t index, size_t total) {
+    for (size_t i = 0; i < len; i++) _tempPayload += (char)payload[i];
+
+   if (index + len == total) {
+      Message msg = Message::fromJson(_tempPayload);
+      _tempPayload = "";
+      if (msg.command == "get_connected_devices"){
+        Message msg = connectEvent(this->mac, chipType, WiFi.RSSI(),this->firmwareVersion);
+        QueuedMessage qm;
+        qm.payload = msg.toJson();
+        qm.qos=2;
+        qm.retain=true;
+        sendMessage(qm);
+        return;
+      }
+      else if (msg.command == "update_firmware") {
+        if (msg.payload["url"].is<const char*>() && msg.payload["version"].is<float>()) {
+            otaUrl = msg.payload["url"];
+            otaActive = true;
+            configManager.set("device.firmwareVersion",msg.payload["version"]);
+            configManager.save();
+        }
+        return;
+      }
+      if (messageHandler) messageHandler(msg);
+   }
+  });
+
+  
+  WiFi.begin(ssid, password);
 
   IPAddress server;
   server.fromString(brokerIp);
   client.setServer(server, brokerPort);
-
-  client.setBufferSize(2048);
   client.setKeepAlive(5);
-
-  client.setCallback([this](char* topic, byte* payload, unsigned int length){
-    String msgStr;
-    for (unsigned int i = 0; i < length; i++) {
-        msgStr += (char)payload[i];
-    }
-    Message msg = Message::fromJson(msgStr);
-    if (msg.command == "get_connected_devices"){
-      Message msg = connectEvent(this->mac, chipType, WiFi.RSSI(),this->firmwareVersion);
-      QueuedMessage qm;
-      qm.payload = msg.toJson();
-      qm.qos=2;
-      qm.retain=true;
-      sendMessage(qm);
-      return;
-    }
-    else if (msg.command == "update_firmware") {
-      if (msg.payload["url"].is<const char*>() && msg.payload["version"].is<float>()) {
-          otaUrl = msg.payload["url"];
-          otaActive = true;
-          configManager.set("device.firmwareVersion",msg.payload["version"]);
-          configManager.save();
-      }
-      return;
-    }
-    if (messageHandler) messageHandler(msg);
-  });
 
   reconnect();
 }
 
 void Mqtt::loop() {
-    client.loop();
     if (otaActive){
       otaActive = false;
       WiFiClient otaClient;
@@ -122,48 +138,25 @@ void Mqtt::loop() {
 
 
 void Mqtt::reconnect() {
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WIFI reconnecting...");
-        WiFi.disconnect();
-        delay(1000);
-        WiFi.begin(ssid, password);
-    }else if (!client.connected()) {
-        Serial.println("MQTT reconnecting...");
-        if (client.connect(mac.c_str(),nullptr, nullptr, brokerName, 2, true, willMessage.c_str())) {
-          Serial.println("MQTT OK");
-            String topic = "device/" + mac + "/+";
-            client.subscribe(topic.c_str(), 1);
-            client.subscribe("device/broadcast/", 1);
-            delay(100);
-            Message msg = connectEvent(mac, chipType, WiFi.RSSI(), firmwareVersion); 
-            QueuedMessage qm;
-            qm.payload = msg.toJson();
-            qm.qos=1;
-            qm.retain=true;
-            sendMessage(qm);
-            IPAddress ip = WiFi.localIP();
-            Serial.printf("IP: %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
-            connected = true;
-        } else {
-            Serial.print("failed rc=");
-            Serial.println(client.state());
-        }
+ if (WiFi.status() == WL_CONNECTED && !client.connected()) {
+        Serial.println("Reconnecting to MQTT...");
+        client.connect();
     }
 }
 
 void Mqtt::sendToRouter(){
-  if (sending || pointer == 0 || !client.connected()) return;
+  if (pointer == 0 || !client.connected()) return;
 
-  sending = true;
   QueuedMessage& qm = messageBuffer[0];
 
-  bool ok = client.publish(
-    brokerName, 
-    qm.payload.c_str(), 
-    qm.retain
+  uint16_t packetId = client.publish(
+    brokerName,
+    qm.qos, 
+    qm.retain,
+    qm.payload.c_str() 
   );
 
-  if (ok) {
+  if (packetId>0) {
     Serial.print("MQTT sent [QoS:"); Serial.print(qm.qos); Serial.println("]:");
     Serial.println(qm.payload);
     for (int i = 0; i < pointer - 1; i++) {
@@ -172,7 +165,6 @@ void Mqtt::sendToRouter(){
     messageBuffer[pointer - 1].payload = "";
     pointer--;
   } 
-  sending = false;
 }
 
 bool Mqtt::isConnected(){

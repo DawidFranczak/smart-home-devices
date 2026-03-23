@@ -41,8 +41,7 @@ public:
         apply();
     }
 
-    void loop() override {
-    }
+    void loop() override {}
 
     void onMessage(Message& msg) override {
         if(msg.command == "update_state"){

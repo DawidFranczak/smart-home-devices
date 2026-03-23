@@ -1,9 +1,10 @@
 #pragma once
-#include "BasePeripheralFactory.h"
-#include "PinOutput.h"
+#include "Rtc.h"
 #include "PinInput.h"
 #include "RgbStrip.h"
-#include "Rtc.h"
+#include "PinOutput.h"
+#include "SequentialLight.h"
+#include "BasePeripheralFactory.h"
 
 class ESP8266PeripheralFactory : public BasePeripheralFactory {
 public:
@@ -17,6 +18,8 @@ public:
             return new RgbStrip(id, ctx, cfg);
         } else if(type == "rtc") {
             return new Rtc(id, ctx, cfg);
+        } else if(type == "sequential_light") {
+            return new SequentialLight(id, ctx, cfg);
         } 
         return nullptr;
     }

@@ -15,6 +15,7 @@ private:
     TimeData currentTime;
 
 public:
+    bool isActive = false;
     TimeManager();
     
     void update(uint8_t h, uint8_t m, uint8_t s, uint8_t d, uint8_t mo, uint16_t y);

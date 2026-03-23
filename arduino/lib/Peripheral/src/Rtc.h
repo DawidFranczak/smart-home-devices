@@ -19,8 +19,8 @@ private:
     }
 
 public:
-    Rtc(int id, SystemContext& ctx, JsonObject cfg)
-        : BasePeripheral(id, ctx)
+    Rtc(int id, SystemContext& systemContext, JsonObject cfg)
+        : BasePeripheral(id, systemContext)
     {
         lastSync = millis();
     }
@@ -45,6 +45,15 @@ public:
 
             struct tm timeinfo = {0}; 
             if (localtime_r(&now_ts, &timeinfo)) {
+                systemContext.timeManager.update(
+                    timeinfo.tm_hour, 
+                    timeinfo.tm_min, 
+                    timeinfo.tm_sec, 
+                    timeinfo.tm_mday, 
+                    timeinfo.tm_mon + 1, 
+                    timeinfo.tm_year + 1900
+                );
+
                 if (timeinfo.tm_sec == 0) {
                     float time = timeinfo.tm_hour *60 + timeinfo.tm_min;
                     JsonDocument payload;

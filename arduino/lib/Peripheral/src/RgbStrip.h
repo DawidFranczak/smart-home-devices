@@ -58,7 +58,6 @@ public:
             }
 
             JsonDocument payload;
-            Serial.println(extraSettings);
             DeserializationError error = deserializeJson(payload, extraSettings);
             
             if (error){
@@ -66,7 +65,6 @@ public:
                 Serial.println(error.f_str());
                 return;
             }
-            serializeJson(payload, Serial);
 
             currentR = payload["r_duty_cycle"] | currentR;
             currentG = payload["g_duty_cycle"] | currentG;

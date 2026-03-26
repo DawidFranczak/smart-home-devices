@@ -144,7 +144,7 @@ void Cpu::updateRule(Message& message){
     
     String settingsStr;
     serializeJson(action["extra_settings"], settingsStr);
-    systemContext.configManager.set((basePath + ".settings").c_str(), settingsStr.c_str());
+    systemContext.configManager.set((basePath + ".extraSettings").c_str(), settingsStr.c_str());
 
 
     Message resultMsg = basicCPUResult(message, true);

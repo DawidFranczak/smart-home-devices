@@ -33,18 +33,21 @@ public:
     void turnOff();
     void blink();
     void toggle();
-    bool reverse;
     bool isPending;
-
-private:
+    
+    private:
     std::vector<LightingPeriod> lightingPeriods;    
     int lightCount;
     int address;
     int frequency;
     int currentLightIndex;
     bool lightOn;
+    int brightnessBase;
+    int stepBase;
     int brightness;
     int step;
+    bool reverse;
+    unsigned long lightingTimeBase;
     unsigned long lightingTime;
     unsigned long lastUpdate;
     int currentLight;

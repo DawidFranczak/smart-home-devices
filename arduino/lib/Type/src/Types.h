@@ -4,6 +4,11 @@
 
 class Message;
 
+enum class OnBlinkStatus{
+   START = 1,
+    STOP = 2
+};
+
 enum class ActionResult{
     ACCEPTED = 1,
     REJECTED = 2

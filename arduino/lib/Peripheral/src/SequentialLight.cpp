@@ -17,9 +17,9 @@ void SequentialLight::begin(){
     step = systemContext.stateManager.get((baseStatePath+"step").c_str());
     brightness = systemContext.stateManager.get((baseStatePath+"brightness").c_str());
     lightingTime = systemContext.stateManager.get((baseStatePath+"lighting_time").c_str());
-    step = step *  3;
-    brightness = brightness * 40.95;
-    lightingTime = lightingTime * 1000;
+    stepBase = step *  3;
+    brightnessBase = brightness * 40.95;
+    lightingTimeBase = lightingTime * 1000;
     
     JsonArray periodsArr = systemContext.stateManager.config["states"][String(id)]["lighting_period"].as<JsonArray>();
     
@@ -41,10 +41,10 @@ void SequentialLight::loop() {
 }
 
 void SequentialLight::onMessage(Message& message) {
-    reverse = false;
-    if (message.payload["reverse"].is<bool>()) {
-        reverse = message.payload["reverse"].as<bool>();
-    }
+    reverse = message.payload["reverse"].is<bool>() ? message.payload["reverse"].as<bool>(): false;
+    lightingTime = message.payload["lighting_time"].is<int>() ? message.payload["lighting_time"].as<int>()*1000 : lightingTimeBase;
+    step = message.payload["step"].is<int>() ? message.payload["step"].as<int>()*3 : stepBase;
+    
     JsonDocument payload;
     payload["status"] = static_cast<uint8_t>(ActionResult::ACCEPTED);
     if (message.command == "update_state") {
@@ -54,7 +54,6 @@ void SequentialLight::onMessage(Message& message) {
         turnOff();
         JsonDocument payload2;
         notify("on_off","on_off", payload2,"",MessageType::EVENT);
-
     } else if (message.command == "on") {
         notify("on",message.command, payload,message.message_id,MessageType::ACTION,MessageTarget::BACKEND);
         turnOn();
@@ -64,7 +63,7 @@ void SequentialLight::onMessage(Message& message) {
         notify("blink",message.command, payload,message.message_id,MessageType::ACTION,MessageTarget::BACKEND);
         blink();
         JsonDocument payload2;
-        payload2["status"] = 1; // Start
+        payload2["status"] = static_cast<uint8_t>(OnBlinkStatus::START);
         notify("on_blink","on_blink", payload2,"",MessageType::EVENT);
     } else if (message.command == "toggle") {
         notify("toggle",message.command, payload,message.message_id,MessageType::ACTION,MessageTarget::BACKEND);
@@ -75,7 +74,42 @@ void SequentialLight::onMessage(Message& message) {
     }
 }
 
-void SequentialLight::triggerAction(String targetAction, String extraSettings){}
+void SequentialLight::triggerAction(String targetAction, String extraSettings){
+
+    JsonDocument payload;
+    DeserializationError error = deserializeJson(payload, extraSettings);
+    JsonDocument payloadResponse;
+    
+    if (error){
+        Serial.print("Parsing errors: ");
+        Serial.println(error.f_str());
+        return;
+    }
+    reverse = payload["reverse"] | false;
+    lightingTime = payload["lighting_time"].is<int>() 
+                ? payload["lighting_time"].as<uint32_t>() * 1000 
+                : lightingTimeBase;
+
+    step = payload["step"].is<int>() 
+        ? payload["step"].as<int>() * 3 
+        : stepBase;
+
+    if (targetAction == "off") {
+        turnOff();
+        notify("on_off", "on_off", payloadResponse,"",MessageType::EVENT);
+    } else if (targetAction == "on") {
+        turnOn();
+        notify("on_on", "on_on", payloadResponse,"",MessageType::EVENT);
+    } else if (targetAction == "blink") {
+        blink();
+        payloadResponse["status"] = static_cast<uint8_t>(OnBlinkStatus::START);
+        notify("on_blink", "on_blink", payloadResponse,"",MessageType::EVENT);
+    } else if (targetAction == "toggle") {
+        toggle();
+        payloadResponse["is_on"] = lightOn;
+        notify("on_toggle", "on_toggle", payloadResponse,"",MessageType::EVENT);
+    }
+}
 
 void SequentialLight::update() {
 
@@ -129,7 +163,6 @@ void SequentialLight::turnOff() {
 }
 
 void SequentialLight::blink() {
-    Serial.println(isPending);
     if (isPending) return;
     isPending = true;
     state = BLINKING;

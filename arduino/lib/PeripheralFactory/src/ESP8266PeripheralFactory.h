@@ -5,6 +5,8 @@
 #include "PinOutput.h"
 #include "SequentialLight.h"
 #include "BasePeripheralFactory.h"
+#include "ButtonBistable.h"
+#include "ButtonMonostable.h"
 
 class ESP8266PeripheralFactory : public BasePeripheralFactory {
 public:
@@ -20,6 +22,10 @@ public:
             return new Rtc(id, ctx, cfg);
         } else if(type == "sequential_light") {
             return new SequentialLight(id, ctx, cfg);
+        } else if(type == "button_bistable") {
+            return new ButtonBistable(id, ctx, cfg);
+        } else if(type == "button_monostable") {
+            return new ButtonMonostable(id, ctx, cfg);
         } 
         return nullptr;
     }

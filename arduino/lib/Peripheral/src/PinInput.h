@@ -33,7 +33,7 @@ public:
                 arduinoMode = INPUT_PULLDOWN_16;
             } else {
                 arduinoMode = INPUT;
-        }
+            }
             #else
             arduinoMode = INPUT_PULLDOWN;
             #endif

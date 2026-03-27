@@ -7,6 +7,7 @@
 #include "BasePeripheralFactory.h"
 #include "ButtonBistable.h"
 #include "ButtonMonostable.h"
+#include "PirSensor.h"
 
 class ESP8266PeripheralFactory : public BasePeripheralFactory {
 public:
@@ -26,6 +27,8 @@ public:
             return new ButtonBistable(id, ctx, cfg);
         } else if(type == "button_monostable") {
             return new ButtonMonostable(id, ctx, cfg);
+        } else if(type == "pir_sensor") {
+            return new PirSensor(id, ctx, cfg);
         } 
         return nullptr;
     }

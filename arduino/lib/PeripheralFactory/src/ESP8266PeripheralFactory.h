@@ -8,6 +8,7 @@
 #include "ButtonBistable.h"
 #include "ButtonMonostable.h"
 #include "PirSensor.h"
+#include "Rc522.h"
 
 class ESP8266PeripheralFactory : public BasePeripheralFactory {
 public:
@@ -29,6 +30,8 @@ public:
             return new ButtonMonostable(id, ctx, cfg);
         } else if(type == "pir_sensor") {
             return new PirSensor(id, ctx, cfg);
+        } else if(type == "rc522") {
+            return new Rc522(id, ctx, cfg);
         } 
         return nullptr;
     }

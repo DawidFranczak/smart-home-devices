@@ -54,16 +54,14 @@ public:
             lastDebounceTime = millis();
             lastState = currentState;
         }
-       if ((millis() - lastDebounceTime) > 30) {
-        
-        if (currentState != stableState) {
-            stableState = currentState;
-            
-            JsonDocument payload;
-            payload["is_on"] = (stableState == activeState); 
-            notify("on_toggle", "on_toggle", payload, "", MessageType::EVENT);
+        if ((millis() - lastDebounceTime) > 30) {
+            if (currentState != stableState) {
+                stableState = currentState;
+                
+                if (stableState) notify("on_on");
+                else notify("on_off");   
+            }
         }
-    }
     }
 
     void onMessage(Message& msg) override {}

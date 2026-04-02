@@ -9,6 +9,7 @@
 #include "ButtonMonostable.h"
 #include "PirSensor.h"
 #include "Rc522.h"
+#include "Relay.h"
 
 class ESP8266PeripheralFactory : public BasePeripheralFactory {
 public:
@@ -32,6 +33,8 @@ public:
             return new PirSensor(id, ctx, cfg);
         } else if(type == "rc522") {
             return new Rc522(id, ctx, cfg);
+        } else if(type == "relay") {
+            return new Relay(id, ctx, cfg);
         } 
         return nullptr;
     }

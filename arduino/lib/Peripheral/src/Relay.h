@@ -13,6 +13,7 @@ private:
     String statePath = baseStatePath + "is_on";
     unsigned long timerStart = 0;
     unsigned long durationMs = 0;
+    unsigned long pendingDuration = 0;
     bool isTimerActive = false;
     bool targetStateAfterTimer = false;
 
@@ -29,25 +30,29 @@ private:
         }
     }
 
-    void handlePowerAction(bool state, int delay, int duration) {
-        if (delay > 0) {
+void handlePowerAction(bool state, int delaySec, int durationSec) {
+    unsigned long delayMs = (unsigned long)delaySec * 1000;
+    pendingDuration = (unsigned long)durationSec * 1000;
+
+    if (delayMs > 0) {
+        timerStart = millis();
+        durationMs = delayMs;
+        targetStateAfterTimer = state;
+        isTimerActive = true;
+    } else {
+        setPhysicalState(state);
+        
+        if (pendingDuration > 0) {
             timerStart = millis();
-            durationMs = delay;
-            targetStateAfterTimer = state;
+            durationMs = pendingDuration;
+            targetStateAfterTimer = !state;
             isTimerActive = true;
+            pendingDuration = 0; 
         } else {
-            setPhysicalState(state);
-            
-            if (duration > 0 && state == true) {
-                timerStart = millis();
-                durationMs = duration;
-                targetStateAfterTimer = false;
-                isTimerActive = true;
-            } else {
-                isTimerActive = false;
-            }
+            isTimerActive = false;
         }
     }
+}
 
 public:
     Relay(int id, SystemContext& ctx, JsonObject cfg)
@@ -62,12 +67,25 @@ public:
         digitalWrite(pin, isOn ? HIGH : LOW);
     }
 
-    void loop() override {}
+    void loop() override {
+    if (isTimerActive && (millis() - timerStart >= durationMs)) {
+        setPhysicalState(targetStateAfterTimer);
+        if (pendingDuration > 0) {
+            timerStart = millis();
+            durationMs = pendingDuration;
+            targetStateAfterTimer = !isOn; 
+            isTimerActive = true;
+            pendingDuration = 0; 
+        } else {
+            isTimerActive = false;
+        }
+    }
+}
 
     void onMessage(Message& msg) override {
 
-        int duration = msq.payload["duration"] | 0;
-        int delay = msq.payload["delay"] | 0;
+        int duration = msg.payload["duration"] | 0;
+        int delay = msg.payload["delay"] | 0;
 
         if(msg.command == "toggle") {
             notify(msg, ActionResult::ACCEPTED);
@@ -75,11 +93,11 @@ public:
           
         }else if(msg.command == "on"){
             notify(msg, ActionResult::ACCEPTED);
-            handlePowerAction(!isOn, delay, duration);
+            handlePowerAction(true, delay, duration);
            
         }else if(msg.command == "off"){
             notify(msg, ActionResult::ACCEPTED);
-            handlePowerAction(!isOn, delay, duration);
+            handlePowerAction(false, delay, duration);
         }
     }
 
@@ -87,7 +105,7 @@ public:
         JsonDocument doc;
         JsonObject settings;
         
-        bool hasSettings = getSettings(extraSettings, doc, settings);
+        getSettings(extraSettings, doc, settings);
 
         int duration = settings["duration"] | 0;
         int delay = settings["delay"] | 0;

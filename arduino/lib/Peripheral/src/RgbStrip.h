@@ -45,94 +45,68 @@ public:
 
     void onMessage(Message& msg) override {
         if(msg.command == "update_state"){
-            updateState(msg);
+            notify(msg, ActionResult::ACCEPTED);
+            JsonObject payload = msg.payload.as<JsonObject>();
+            updateState(payload);
+            saveState();
+            apply();
+            sendOnStateUpdate();
+
         } else if(msg.command == "toggle"){
-            toggle(msg);
+            notify(msg, ActionResult::ACCEPTED);
+            toggle();
+        } else if(msg.command == "on"){
+            notify(msg, ActionResult::ACCEPTED);
+            on();
+        } else if(msg.command == "off"){
+            notify(msg, ActionResult::ACCEPTED);
+            off();
         }
     }
 
     void triggerAction(String targetAction, String extraSettings) override {
         if(targetAction=="update_state"){
-            if (extraSettings.length()==0 || extraSettings == "{}") {
-                return;
-            }
+            JsonDocument doc;
+            JsonObject settings;
+            bool hasSettings = getSettings(extraSettings, doc, settings);
+            if(!hasSettings) return;
 
-            JsonDocument payload;
-            DeserializationError error = deserializeJson(payload, extraSettings);
-            
-            if (error){
-                Serial.print("Parsing errors: ");
-                Serial.println(error.f_str());
-                return;
-            }
-
-            currentR = payload["r_duty_cycle"] | currentR;
-            currentG = payload["g_duty_cycle"] | currentG;
-            currentB = payload["b_duty_cycle"] | currentB;
-            isOn = payload["is_on"] | isOn;
-            brightness = payload["brightness"] | brightness;
-
-            systemContext.stateManager.set((baseStatePath+"r_duty_cycle").c_str(), currentR);
-            systemContext.stateManager.set((baseStatePath+"g_duty_cycle").c_str(), currentG);
-            systemContext.stateManager.set((baseStatePath+"b_duty_cycle").c_str(), currentB);
-            systemContext.stateManager.set((baseStatePath+"brightness").c_str(), brightness);
-            systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
-            systemContext.stateManager.save();
-
+            updateState(settings);
+            saveState();
             apply();
+            sendOnStateUpdate();
             
-            JsonDocument responsePayload;
-            notify("on_state_updated", "on_state_updated", responsePayload);
-            
-        }else if ("toggle"){
-            isOn = !isOn;
-            apply();
-
-            systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
-            systemContext.stateManager.save();
-
-            JsonDocument payload;
-            payload["is_on"] = isOn;
-            notify("on_toggle", "on_toggle", payload, "",MessageType::EVENT);
+        }else if (targetAction=="toggle"){
+            toggle();
+        }else if(targetAction == "on"){
+            on();
+        } else if(targetAction == "off"){
+            off();
         }
 
     }
 
+private:
 
-    void updateState(Message& msg){
-        JsonObject p = msg.payload.as<JsonObject>();
-        currentR = p["r_duty_cycle"] | currentR;
-        currentG = p["g_duty_cycle"] | currentG;
-        currentB = p["b_duty_cycle"] | currentB;
-        isOn = p["is_on"] | isOn;
-        brightness = p["brightness"] | brightness;
-
-        systemContext.stateManager.set((baseStatePath+"r_duty_cycle").c_str(), currentR);
-        systemContext.stateManager.set((baseStatePath+"g_duty_cycle").c_str(), currentG);
-        systemContext.stateManager.set((baseStatePath+"b_duty_cycle").c_str(), currentB);
-        systemContext.stateManager.set((baseStatePath+"brightness").c_str(), brightness);
-        systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
-        systemContext.stateManager.save();
-
+    void toggle(){
+        if (isOn) off();
+        else if (!isOn) on();
+    }
+    
+    void on(){
+        if(isOn) return;
+        isOn = true;
         apply();
-
-        JsonDocument payload;
-        payload["status"] = static_cast<uint8_t>(ActionResult::ACCEPTED);
-        notify("on_state_updated", msg.command, payload, msg.message_id);
+        saveState();
+        notify("on_on");
     }
 
-    void toggle(Message& msg){
-
-        isOn = !isOn;
+    void off(){
+        if(!isOn) return;
+        isOn = false;
         apply();
-
-        systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
-        systemContext.stateManager.save();
-
-        JsonDocument payload;
-        payload["is_on"] = isOn;
-        payload["status"] = static_cast<uint8_t>(ActionResult::ACCEPTED);
-        notify("on_toggle", msg.command, payload, msg.message_id);
+        saveState();
+        notify("on_off");
     }
 
     void apply() {
@@ -155,5 +129,32 @@ public:
         if (gPin != -1) analogWrite(gPin, calculateDuty(currentG, resolution));
         if (bPin != -1) analogWrite(bPin, calculateDuty(currentB, resolution));
     }
+    
+    void updateState(JsonObject state){
+        currentR = state["r_duty_cycle"] | currentR;
+        currentG = state["g_duty_cycle"] | currentG;
+        currentB = state["b_duty_cycle"] | currentB;
+        isOn = state["is_on"] | isOn;
+        brightness = state["brightness"] | brightness;
+    }
 
+    void saveState(){
+        systemContext.stateManager.set((baseStatePath+"r_duty_cycle").c_str(), currentR);
+        systemContext.stateManager.set((baseStatePath+"g_duty_cycle").c_str(), currentG);
+        systemContext.stateManager.set((baseStatePath+"b_duty_cycle").c_str(), currentB);
+        systemContext.stateManager.set((baseStatePath+"brightness").c_str(), brightness);
+        systemContext.stateManager.set((baseStatePath+"is_on").c_str(), isOn);
+        systemContext.stateManager.save();
+    }
+
+    void sendOnStateUpdate(){
+        JsonDocument payload;
+        payload["r_duty_cycle"] = currentR;
+        payload["g_duty_cycle"] = currentG;
+        payload["b_duty_cycle"] = currentB;
+        payload["is_on"] = isOn;
+        payload["brightness"] = brightness;
+
+        notify("on_state_updated", payload);
+    }
 };

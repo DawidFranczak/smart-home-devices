@@ -93,6 +93,15 @@ public:
             addTagFlag = true;
             addTagMessageId = msg.message_id;
             addTagStart = millis();
+        }if(msg.command == "on_read") {
+            int statusInt = msg.payload["status"] | -1; 
+            ActionResult result = static_cast<ActionResult>(statusInt);
+            if (result == ActionResult::ACCEPTED){
+                notify("on_read_success");
+            }else if (result == ActionResult::REJECTED){
+                notify("on_read_failure");
+            }
+ 
         }
     }
 

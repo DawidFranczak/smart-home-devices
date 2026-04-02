@@ -10,7 +10,7 @@ class PinOutput : public BasePeripheral {
 private:
     int pin;
     bool isOn;
-    String statePath = baseStatePath + ".is_on";
+    String statePath = baseStatePath + "is_on";
 
     void toggle(){
         digitalWrite(pin, !digitalRead(pin));

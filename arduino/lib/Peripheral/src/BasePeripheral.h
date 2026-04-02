@@ -14,7 +14,10 @@ class BasePeripheral {
         SystemContext& systemContext;
         String  mac = WiFi.macAddress();
         void notify(String eventType, String command, JsonDocument payload, String messageId = "", MessageType type=MessageType::ACTION,  MessageTarget target=MessageTarget::BOTH, float eventValue=0.0);
-        JsonDocument deserializeString(String rawData);
+        void notify(const Message& originalMsg, ActionResult result);
+        void notify(String eventType, JsonDocument payload = JsonDocument(), float eventValue = 0.0);
+        void emitToEngine(Message& msg, String evType, MessageTarget target, float val = 0.0);
+        bool getSettings(const String& extra, JsonDocument& doc, JsonObject& obj);
         String baseStatePath = "states." + String(id) + ".";
 
     public:

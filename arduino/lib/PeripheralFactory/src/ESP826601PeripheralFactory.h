@@ -1,19 +1,13 @@
 #pragma once
+#include "BasePeripheralFactory.h"
 #include "Rtc.h"
 #include "PinInput.h"
-#include "RgbStrip.h"
 #include "PinOutput.h"
-#include "SequentialLight.h"
-#include "BasePeripheralFactory.h"
 #include "ButtonBistable.h"
 #include "ButtonMonostable.h"
-#include "PirSensor.h"
-#include "Rc522.h"
 #include "Relay.h"
-#include "Aht10.h"
-#include "ActiveBuzzer.h"
 
-class ESP8266PeripheralFactory : public BasePeripheralFactory {
+class ESP826601PeripheralFactory : public BasePeripheralFactory {
 public:
     BasePeripheral* create(int id, JsonObject cfg, SystemContext& ctx) override {
         String type = cfg["name"].as<String>();
@@ -21,26 +15,14 @@ public:
             return new PinOutput(id, ctx, cfg);
         } else if(type == "pin_input") {
             return new PinInput(id, ctx, cfg);
-        } else if(type == "rgb_strip") {
-            return new RgbStrip(id, ctx, cfg);
         } else if(type == "rtc") {
             return new Rtc(id, ctx, cfg);
-        } else if(type == "sequential_light") {
-            return new SequentialLight(id, ctx, cfg);
         } else if(type == "button_bistable") {
             return new ButtonBistable(id, ctx, cfg);
         } else if(type == "button_monostable") {
             return new ButtonMonostable(id, ctx, cfg);
-        } else if(type == "pir_sensor") {
-            return new PirSensor(id, ctx, cfg);
-        } else if(type == "rc522") {
-            return new Rc522(id, ctx, cfg);
         } else if(type == "relay") {
             return new Relay(id, ctx, cfg);
-        } else if(type == "aht10") {
-            return new Aht10(id, ctx, cfg);
-        } else if(type == "active_buzzer") {
-            return new ActiveBuzzer(id, ctx, cfg);
         } 
         return nullptr;
     }

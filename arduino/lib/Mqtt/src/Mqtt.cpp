@@ -85,8 +85,9 @@ void Mqtt::begin(){
       else if (msg.command == "update_firmware") {
         if (msg.payload["url"].is<const char*>() && msg.payload["version"].is<float>()) {
             otaUrl = msg.payload["url"];
+            Serial.println(otaUrl);
             otaActive = true;
-            configManager.set("device.firmwareVersion",msg.payload["version"]);
+            configManager.set("device.firmwareVersion", msg.payload["version"]);
             configManager.save();
         }
         return;

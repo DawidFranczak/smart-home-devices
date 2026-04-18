@@ -2,11 +2,11 @@
 #include <Arduino.h>
 
 struct TimeData {
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-    uint8_t day;
-    uint8_t month;
+    int hour;
+    int minute;
+    int second;
+    int day;
+    int month;
     uint16_t year;
 };
 
@@ -18,13 +18,13 @@ public:
     bool isActive = false;
     TimeManager();
     
-    void update(uint8_t h, uint8_t m, uint8_t s, uint8_t d, uint8_t mo, uint16_t y);
+    void update(int h, int m, int s, int d, int mo, uint16_t y);
     
     TimeData now() const { return currentTime; }
-    uint8_t getHour() const { return currentTime.hour; }
-    uint8_t getMinute() const { return currentTime.minute; }
-    uint8_t getSecond() const { return currentTime.second; }
-    uint8_t getTimeInMin() const { return currentTime.hour * 60 + currentTime.minute; }
-    uint8_t getTimeInSec() const { return currentTime.hour * 3600 + currentTime.minute * 60 + currentTime.second; }
+    int getHour() const { return currentTime.hour; }
+    int getMinute() const { return currentTime.minute; }
+    int getSecond() const { return currentTime.second; }
+    int getTimeInMin() const { return currentTime.hour * 60 + currentTime.minute; }
+    int getTimeInSec() const { return currentTime.hour * 3600 + currentTime.minute * 60 + currentTime.second; }
     
 };

@@ -11,7 +11,6 @@
 #include "Rc522.h"
 #include "Relay.h"
 #include "Aht10.h"
-#include "ActiveBuzzer.h"
 
 class ESP8266PeripheralFactory : public BasePeripheralFactory {
 public:
@@ -39,8 +38,6 @@ public:
             return new Relay(id, ctx, cfg);
         } else if(type == "aht10") {
             return new Aht10(id, ctx, cfg);
-        } else if(type == "active_buzzer") {
-            return new ActiveBuzzer(id, ctx, cfg);
         } 
         return nullptr;
     }

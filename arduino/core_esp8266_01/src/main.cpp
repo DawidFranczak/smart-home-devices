@@ -8,11 +8,11 @@
 #include <PeripheralManager.h>
 #include <BasePeripheral.h>
 #include <SystemContext.h>
-#include <ESP8266PeripheralFactory.h>
+#include <ESP826601PeripheralFactory.h>
 
 ConfigManager configManager("/config.json");
 ConfigManager stateManager("/state.json");
-ESP8266PeripheralFactory factory;
+ESP826601PeripheralFactory factory;
 PeripheralManager peripheralManager(factory);
 Mqtt mqtt(configManager);
 EventEngine eventEngine(peripheralManager, mqtt, configManager);

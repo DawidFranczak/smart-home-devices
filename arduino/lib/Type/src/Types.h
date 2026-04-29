@@ -61,13 +61,27 @@ struct Event {
     float value;
 };
 
+struct Condition {
+    String type;      
+    String op;         
+    float value;        
+    float hysteresis; 
+    bool triggered = false; 
+};
+
 struct Rule {
-    int triggerId;
-    String triggerEvent;
-    int targetId;
-    String targetAction;
-    String extraSettings;
-    String conditionsOperator;
-    float conditionsValue;
+    int id;                   
+    int triggerId;            
+    String triggerEvent;        
+    
+    int targetId;            
+    String targetAction;        
+    String extraSettings;     
+
+    std::vector<Condition> conditions;
+
+    bool hasConditions() const {
+        return !conditions.empty();
+    }
 };
 

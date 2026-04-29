@@ -48,8 +48,8 @@ public:
         if (digitalRead(pin) != lastState){
             lastState = digitalRead(pin);
             JsonDocument payload;
-            payload["is_on"] = lastState;
-            notify("on_toggle", "on_toggle", payload, "", MessageType::EVENT);
+            if (lastState)  notify("on_on");
+            else notify("on_off");
         }
     }
 

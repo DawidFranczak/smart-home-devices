@@ -4,7 +4,7 @@
     "password": "1RKKHAPIEJ"
   },
   "mqtt": {
-    "brokerIp": "192.168.1.111",
+    "brokerIp": "192.168.1.157",
     "brokerPort": 1883,
     "brokerName": "hub",
     "healthCheckInterval": 600

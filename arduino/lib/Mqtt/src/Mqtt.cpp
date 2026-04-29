@@ -49,7 +49,7 @@ void Mqtt::begin(){
   client.onConnect([this](bool sessionPresent) {
     String topic = "device/" + this->mac + "/+";
     client.subscribe(topic.c_str(), 1);
-    client.subscribe("device/broadcast/",1);
+    client.subscribe("device/broadcast/", 1);
     Message msg = connectEvent(mac, chipType, WiFi.RSSI(), firmwareVersion); 
     QueuedMessage qm;
     qm.payload = msg.toJson();

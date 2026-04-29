@@ -57,8 +57,7 @@ void SequentialLight::onMessage(Message& message) {
         payload2["brightness"]=brightnessBase;
         payload2["speed"]=speedBase;
         payload2["lighting_time"]=lightingTimeBase;
-        payload2["status"] = static_cast<uint8_t>(OnBlinkStatus::START);
-        notify("on_off");
+        notify("on_update_state",payload2);
     } else if (message.command == "off") {
         notify(message, ActionResult::ACCEPTED);
         turnOff();

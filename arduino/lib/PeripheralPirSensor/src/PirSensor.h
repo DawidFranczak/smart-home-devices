@@ -33,14 +33,14 @@ public:
                 sended=true;
                 JsonDocument payload;
                 payload["is_on"] = true;
-                notify("on_motion", payload);
+                notify("on_motion", payload, 1.0);
             }
         }else if (sended){
             if (millis()-lastCheck > (unsigned long)coolDownTime){
                 sended = false;
-                // JsonDocument payload;
-                // payload["is_on"] = false;
-                // notify("on_motion", payload);
+                JsonDocument payload;
+                payload["is_on"] = false;
+                notify("on_motion", payload, 0.0);
             }
         }
     }

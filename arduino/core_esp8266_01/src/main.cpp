@@ -21,7 +21,7 @@ SystemContext systemContext(configManager, stateManager, eventEngine, timeManage
 Cpu cpu(peripheralManager, systemContext);
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   configManager.begin();
   stateManager.begin();
   mqtt.begin();

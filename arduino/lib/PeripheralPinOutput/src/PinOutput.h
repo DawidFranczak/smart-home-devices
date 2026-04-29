@@ -14,7 +14,8 @@ private:
 
     void toggle(){
         digitalWrite(pin, !digitalRead(pin));
-        systemContext.stateManager.set(statePath.c_str(), digitalRead(pin));
+        isOn = digitalRead(pin);
+        systemContext.stateManager.set(statePath.c_str(), isOn);
         systemContext.stateManager.save();
     }
 
@@ -35,20 +36,24 @@ public:
 
     void onMessage(Message& msg) override {
         if(msg.command == "toggle") {
+            notify(msg, ActionResult::ACCEPTED);
             toggle();
-            JsonDocument payload;
-            payload["is_on"] = isOn;
-            payload["status"] = static_cast<uint8_t>(ActionResult::ACCEPTED);
-            notify("on_toggle", msg.command, payload, msg.message_id);
+            if (isOn){
+                notify("on_on");
+            }else{
+                notify("on_off");
+            }
         }
     }
 
     void triggerAction(String targetAction, String extraSettings) override {
          if(targetAction == "toggle") {
             toggle();
-            JsonDocument payload;
-            payload["is_on"] = isOn;
-            notify("on_toggle", "on_toggle", payload);
+            if (isOn){
+                notify("on_on");
+            }else{
+                notify("on_off");
+            }
          }
     }
 

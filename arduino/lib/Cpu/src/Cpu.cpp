@@ -131,17 +131,34 @@ void Cpu::updateRule(Message& message){
     int id = payload["id"];
     JsonObject trigger = payload["triggers"][0];
     JsonObject action = payload["actions"][0];
-    JsonObject condtion = payload["conditions"][0];
     
     String basePath = "rules." + String(id);
 
     systemContext.configManager.set((basePath + ".triggerId").c_str(), trigger["peripheral"]);
     systemContext.configManager.set((basePath + ".triggerEvent").c_str(), trigger["event"]);
+
+    JsonArray conditions = payload["conditions"];
+    int condCount = conditions.size();
+    systemContext.configManager.set((basePath + ".condCount").c_str(), condCount);
+
+    for (int i = 0; i < condCount; i++) {
+        JsonObject condWrapper = conditions[i];
+        JsonObject condObj = condWrapper["condition"];
+        String cPath = basePath + ".cond." + String(i);
+
+        systemContext.configManager.set((cPath + ".type").c_str(), condObj["type"].as<String>());
+        
+        if (condObj["type"] == "numeric") {
+            systemContext.configManager.set((cPath + ".val").c_str(), condObj["value"].as<float>());
+            systemContext.configManager.set((cPath + ".op").c_str(), condObj["operator"].as<String>());
+            systemContext.configManager.set((cPath + ".hyst").c_str(), condObj["hysteresis"].as<float>());
+        } else {
+            systemContext.configManager.set((cPath + ".val").c_str(), condObj["value"].as<bool>() ? 1.0f : 0.0f);
+        }
+    }
+
     systemContext.configManager.set((basePath + ".targetId").c_str(), action["peripheral"]);
     systemContext.configManager.set((basePath + ".targetAction").c_str(), action["action"]);
-    systemContext.configManager.set((basePath + ".conditionsOperator").c_str(), condtion["operator"]);
-    systemContext.configManager.set((basePath + ".conditionsValue").c_str(), (float)condtion["value"]);
-    
     String settingsStr;
     serializeJson(action["extra_settings"], settingsStr);
     systemContext.configManager.set((basePath + ".extraSettings").c_str(), settingsStr.c_str());
